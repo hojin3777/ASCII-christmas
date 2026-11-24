@@ -75,6 +75,141 @@
   const CURSIVE_FONT = "'Lobster', 'Brush Script MT', cursive";
 
   // =========================================================================
+  // Terminal Boot Screen Configuration (Green on Black -> Hard Cut -> Scene)
+  // =========================================================================
+  const BOOT_HOLD_END = 3.35;   // Boot log ends + brief hold on "Final decoding ... OK"
+  const BOOT_CUT_END = 3.75;    // Hard cut pure black beat (no fade/transition)
+
+  function formatKstTimestamp(ms) {
+    const kst = new Date(ms + 9 * 60 * 60 * 1000);
+    const y = kst.getUTCFullYear();
+    const mo = String(kst.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(kst.getUTCDate()).padStart(2, '0');
+    const h = String(kst.getUTCHours()).padStart(2, '0');
+    const mi = String(kst.getUTCMinutes()).padStart(2, '0');
+    const s = String(kst.getUTCSeconds()).padStart(2, '0');
+    return `${y}-${mo}-${d} ${h}:${mi}:${s} KST`;
+  }
+
+  function createBootLines(nowMs) {
+    const dateStr = formatKstTimestamp(nowMs);
+    const dDay = getKstAnniversaryDays();
+    return [
+      { at: 0.05, text: 'ASCII-CHRISTMAS TERMINAL BIOS v2.6.1225', tone: 'bright' },
+      { at: 0.14, text: '================================================', tone: 'dim' },
+      { at: 0.24, text: `DATE      : ${dateStr}`, tone: 'normal' },
+      { at: 0.34, text: 'VERSION   : v2.6.1225  (1080x2316 / 106x142)', tone: 'normal' },
+      { at: 0.44, text: 'AUTHOR    : hojin3777', tone: 'normal' },
+      { at: 0.54, text: '------------------------------------------------', tone: 'dim' },
+      { at: 0.66, text: '[ 0.042] Mounting terminal grid buffer .... OK', tone: 'normal' },
+      { at: 0.80, text: '[ 0.118] Loading D2Coding / Cascadia font . OK', tone: 'normal' },
+      { at: 0.94, text: '[ 0.215] Starting ASCII 3D renderer ....... OK', tone: 'normal' },
+      { at: 1.08, text: '[ 0.334] Initializing snowfall (560) ...... OK', tone: 'normal' },
+      { at: 1.22, text: '[ 0.461] Building 4-tier tree geometry .... OK', tone: 'normal' },
+      { at: 1.36, text: '[ 0.588] Linking dual-helix garland ....... OK', tone: 'normal' },
+      { at: 1.50, text: '[ 0.702] Starting text renderer ........... OK', tone: 'normal' },
+      { at: 1.64, text: '[ 0.819] Syncing KST countdown timer ...... OK', tone: 'normal' },
+      { at: 1.78, text: `[ 0.940] Checking D-Day (D+${dDay}) .......... OK`, tone: 'normal' },
+      { at: 1.92, text: '[ 1.085] Calibrating phosphor bloom ....... OK', tone: 'normal' },
+      { at: 2.08, text: '...', tone: 'dim' },
+      { at: 2.24, text: '...', tone: 'dim' },
+      { at: 2.40, text: '...', tone: 'dim' },
+      { at: 2.56, text: '...', tone: 'dim' },
+      { at: 2.74, text: 'Final decoding ... ', okAt: 2.98, okText: 'OK', tone: 'bright' },
+    ];
+  }
+
+  let bootLines = [];
+
+  function renderBootScreen(t) {
+    // Hard black cut window (no transition/fade) before main sequence begins
+    if (t >= BOOT_HOLD_END) {
+      stageCtx.fillStyle = '#000000';
+      stageCtx.fillRect(0, 0, renderW, renderH);
+      return;
+    }
+
+    sharpCtx.clearRect(0, 0, renderW, renderH);
+
+    const bootFontPx = clamp(renderW * 0.026, 22, 36);
+    const lineH = bootFontPx * 1.62;
+    const padX = Math.round(renderW * 0.055);
+    const startY = Math.round(renderH * 0.095);
+
+    sharpCtx.font = `700 ${bootFontPx.toFixed(1)}px ${FONT_FAMILY}`;
+    sharpCtx.textAlign = 'left';
+    sharpCtx.textBaseline = 'top';
+
+    let lastLineText = '';
+    let lastLineY = startY;
+
+    for (let i = 0; i < bootLines.length; i++) {
+      const line = bootLines[i];
+      if (t < line.at) break;
+
+      const y = startY + i * lineH;
+      let displayText = line.text;
+      let hasOkSuffix = false;
+
+      if (line.okAt !== undefined) {
+        if (t >= line.okAt) {
+          displayText = line.text + line.okText;
+          hasOkSuffix = true;
+        }
+      } else if (displayText.endsWith(' OK')) {
+        hasOkSuffix = true;
+      }
+
+      if (hasOkSuffix) {
+        const prefix = displayText.slice(0, -2);
+        const okPart = displayText.slice(-2);
+        sharpCtx.fillStyle =
+          line.tone === 'bright'
+            ? '#64ff9e'
+            : line.tone === 'dim'
+              ? '#1e8a48'
+              : '#32e074';
+        sharpCtx.fillText(prefix, padX, y);
+        const prefixW = sharpCtx.measureText(prefix).width;
+        sharpCtx.fillStyle = '#9dffbe';
+        sharpCtx.fillText(okPart, padX + prefixW, y);
+      } else {
+        sharpCtx.fillStyle =
+          line.tone === 'bright'
+            ? '#64ff9e'
+            : line.tone === 'dim'
+              ? '#1e8a48'
+              : '#32e074';
+        sharpCtx.fillText(displayText, padX, y);
+      }
+
+      lastLineText = displayText;
+      lastLineY = y;
+    }
+
+    // Crisp blinking green terminal block cursor at end of active boot line
+    if (Math.floor(t * 7) % 2 === 0) {
+      const cursorX = padX + sharpCtx.measureText(lastLineText).width + bootFontPx * 0.15;
+      sharpCtx.fillStyle = '#64ff9e';
+      sharpCtx.fillText('█', cursorX, lastLineY);
+    }
+
+    // Pure black background + subtle green phosphor bloom
+    stageCtx.fillStyle = '#000000';
+    stageCtx.fillRect(0, 0, renderW, renderH);
+    stageCtx.drawImage(sharpCanvas, 0, 0, renderW, renderH);
+
+    bloomCtxA.clearRect(0, 0, bloomCanvasA.width, bloomCanvasA.height);
+    bloomCtxA.drawImage(sharpCanvas, 0, 0, bloomCanvasA.width, bloomCanvasA.height);
+
+    stageCtx.save();
+    stageCtx.globalCompositeOperation = 'lighter';
+    stageCtx.globalAlpha = 0.28;
+    stageCtx.drawImage(bloomCanvasA, 0, 0, renderW, renderH);
+    stageCtx.restore();
+  }
+
+  // =========================================================================
   // 2-Row ASCII Font for KST · UNTIL CHRISTMAS Header (Same Single Grid!)
   // =========================================================================
   const CAPTION_2ROW_FONT = {
@@ -1100,6 +1235,7 @@
 
   function resetAnimation(withSpin = false) {
     startTimeMs = performance.now();
+    bootLines = createBootLines(Date.now());
     prevKstText = '';
     digitFlashTimes.fill(-10);
     if (withSpin) {
@@ -1114,7 +1250,16 @@
   replayBtn.addEventListener('click', () => resetAnimation(true));
 
   function render(nowMs) {
-    const t = (nowMs - startTimeMs) / 1000;
+    const elapsed = (nowMs - startTimeMs) / 1000;
+
+    // Phase 0: Retro green-on-black terminal boot screen -> hard cut to black
+    if (elapsed < BOOT_CUT_END) {
+      renderBootScreen(elapsed);
+      requestAnimationFrame(render);
+      return;
+    }
+
+    const t = elapsed - BOOT_CUT_END;
     const rot = t * ROT_SPEED;
 
     // --- 1. Populate Single Unified Z-Buffered Terminal Grid ---
