@@ -263,9 +263,9 @@
 
   function buildCursiveGreetings() {
     // 1x uniform terminal cells flanking upper-left & upper-right of the tree peak
-    // Crisp thresholds keep cursive loops & gaps completely legible at 106x142!
-    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 2, 11, 45, 15, -6.0, 0.38);
-    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 54, 12, 51, 14, -5.0, 0.42);
+    // Cleanly separated from the tree tip with solid, unbroken cursive strokes!
+    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 2, 11, 45, 15, -6.0, 0.28);
+    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 57, 11, 48, 14, -5.0, 0.27);
   }
 
   // =========================================================================
