@@ -1457,13 +1457,6 @@
     }
   });
 
-  // Unlock WebAudio cleanly on first user tap anywhere on the canvas (mobile autoplay policy)
-  stageCanvas.addEventListener('pointerdown', () => {
-    if (!userMuted && (!audioUnlocked || (audioCtx && audioCtx.state !== 'running'))) {
-      tryUnlockAudio();
-    }
-  });
-
   document.addEventListener('visibilitychange', () => {
     applyMasterMuteState();
   });
@@ -1475,6 +1468,13 @@
   const stageCtx = stageCanvas.getContext('2d', { alpha: false });
   const stageFrame = document.getElementById('stageFrame');
   const replayBtn = document.getElementById('replayBtn');
+
+  // Unlock WebAudio cleanly on first user tap anywhere on the canvas (mobile autoplay policy)
+  stageCanvas.addEventListener('pointerdown', () => {
+    if (!userMuted && (!audioUnlocked || (audioCtx && audioCtx.state !== 'running'))) {
+      tryUnlockAudio();
+    }
+  });
 
   const sharpCanvas = document.createElement('canvas');
   const sharpCtx = sharpCanvas.getContext('2d');
