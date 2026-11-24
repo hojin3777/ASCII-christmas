@@ -2,39 +2,39 @@
   'use strict';
 
   // =========================================================================
-  // Configuration & Timeline (1080x2316 Galaxy FHD+ High-Res Baseline)
+  // Configuration & Timeline (1080x2316 Unified High-Res ASCII Grid)
   // =========================================================================
   const BASE_WIDTH = 1080;
   const BASE_HEIGHT = 2316;
-  const COLS = 80;
-  const ROWS = 108;
+  const COLS = 88;
+  const ROWS = 118;
 
   const TIMELINE = {
-    SNOW_GROUND_START: 0.2,
-    SNOW_GROUND_END: 2.8,
-    TRUNK_START: 1.8,
-    TRUNK_END: 2.8,
+    SNOW_GROUND_START: 0.15,
+    SNOW_GROUND_END: 3.2,
+    TRUNK_START: 1.9,
+    TRUNK_END: 2.9,
     // 4 tiers grow bottom -> top (한단씩)
     TIER_WINDOWS: [
-      [6.8, 8.2], // Tier 0 (top peak)
-      [5.4, 6.9], // Tier 1 (upper-mid)
-      [4.0, 5.5], // Tier 2 (lower-mid)
-      [2.6, 4.1], // Tier 3 (bottom skirt)
+      [6.9, 8.3], // Tier 0 (top peak)
+      [5.5, 7.0], // Tier 1 (upper-mid)
+      [4.1, 5.6], // Tier 2 (lower-mid)
+      [2.7, 4.2], // Tier 3 (bottom skirt)
     ],
-    GARLAND_START: 8.3,
-    GARLAND_END: 11.2,
-    ORN_START: 11.3,
-    ORN_END: 13.8,
-    STAR_START: 14.2,
-    STAR_END: 15.4,
-    MERRY_START: 15.6,
-    MERRY_END: 16.4,
-    CHRISTMAS_START: 16.25,
-    CHRISTMAS_END: 17.35,
-    DIM_START: 17.7,
-    DIM_END: 19.2,
-    COUNTDOWN_START: 18.0,
-    COUNTDOWN_END: 19.1,
+    GARLAND_START: 8.4,
+    GARLAND_END: 11.3,
+    ORN_START: 11.4,
+    ORN_END: 13.9,
+    STAR_START: 14.3,
+    STAR_END: 15.5,
+    MERRY_START: 15.7,
+    MERRY_END: 16.5,
+    CHRISTMAS_START: 16.35,
+    CHRISTMAS_END: 17.5,
+    DIM_START: 17.8,
+    DIM_END: 19.3,
+    COUNTDOWN_START: 18.1,
+    COUNTDOWN_END: 19.2,
   };
 
   // Tree geometry: 4 overlapping tiers (top -> bottom)
@@ -45,23 +45,136 @@
     { top: 0.66, bot: 1.00, r0: 0.36, rmax: 0.68 },
   ];
 
-  // Vertical layout in high-res grid rows (0..107)
+  // Vertical layout in unified 88x118 ASCII grid
   const LAYOUT = {
-    CENTER_COL: (COLS - 1) / 2,
-    STAR_ROW: 12.5,
-    TREE_TOP_ROW: 16.5,
-    TREE_BOT_ROW: 74.0,
-    TRUNK_TOP_ROW: 73.0,
-    TRUNK_BOT_ROW: 80.5,
-    GROUND_CENTER_ROW: 83.5,
-    GROUND_RX: 30.0,
-    GROUND_RY: 6.5,
-    TREE_SCALE_X: 46.5, // maps normalized radius 0.68 -> ~31.6 cols
+    CENTER_COL: (COLS - 1) / 2, // 43.5
+    STAR_ROW: 13.5,
+    GREETING_TOP_ROW: 15, // rows 15..20 flanking the upper peak
+    TREE_TOP_ROW: 18.0,
+    TREE_BOT_ROW: 81.0,
+    TRUNK_TOP_ROW: 80.0,
+    TRUNK_BOT_ROW: 88.0,
+    GROUND_CENTER_ROW: 92.0,
+    GROUND_RX: 39.5, // big, generous circular snow mound
+    GROUND_RY: 8.8,
+    TREE_SCALE_X: 50.0, // maps normalized radius 0.68 -> ~34 cols
+    CAPTION_ROW: 104,
+    COUNTDOWN_TOP_ROW: 107, // rows 107..111 (5-row ASCII-art digits)
   };
 
-  const ROT_SPEED = 0.36; // radians / sec (slow continuous 3D rotation)
+  const ROT_SPEED = 0.35; // radians / sec (slow continuous 3D rotation)
   const WORD = 'MERRYCHRISTMAS';
   const FONT_FAMILY = "'D2Coding', 'Cascadia Code', monospace";
+
+  // =========================================================================
+  // ASCII-Art Bitmap Fonts (Rendered Directly Inside the Unified ASCII Grid)
+  // =========================================================================
+  // 6-row lowercase/capital banner font for 'Merry' and 'christmas'
+  const GREETING_FONT = {
+    M: [
+      '#...#',
+      '##.##',
+      '#.#.#',
+      '#...#',
+      '#...#',
+      '#...#',
+    ],
+    e: [
+      '...',
+      '.#.',
+      '#.#',
+      '###',
+      '#..',
+      '.##',
+    ],
+    r: [
+      '...',
+      '.##',
+      '#..',
+      '#..',
+      '#..',
+      '#..',
+    ],
+    y: [
+      '...',
+      '#.#',
+      '#.#',
+      '.##',
+      '..#',
+      '##.',
+    ],
+    c: [
+      '...',
+      '.##',
+      '#..',
+      '#..',
+      '#..',
+      '.##',
+    ],
+    h: [
+      '#..',
+      '#..',
+      '##.',
+      '#.#',
+      '#.#',
+      '#.#',
+    ],
+    i: [
+      '#',
+      '.',
+      '#',
+      '#',
+      '#',
+      '#',
+    ],
+    s: [
+      '...',
+      '.##',
+      '#..',
+      '.#.',
+      '..#',
+      '##.',
+    ],
+    t: [
+      '.#.',
+      '###',
+      '.#.',
+      '.#.',
+      '.#.',
+      '.##',
+    ],
+    m: [
+      '.....',
+      '##.##',
+      '#.#.#',
+      '#.#.#',
+      '#.#.#',
+      '#.#.#',
+    ],
+    a: [
+      '...',
+      '##.',
+      '..#',
+      '###',
+      '#.#',
+      '###',
+    ],
+  };
+
+  // 5-row ASCII-art digit font for KST DD:HH:MM:SS countdown
+  const DIGIT_FONT = {
+    '0': ['.##.', '#..#', '#..#', '#..#', '.##.'],
+    '1': ['..#.', '.##.', '..#.', '..#.', '.###'],
+    '2': ['###.', '...#', '.##.', '#...', '####'],
+    '3': ['###.', '...#', '.##.', '...#', '###.'],
+    '4': ['#..#', '#..#', '####', '...#', '...#'],
+    '5': ['####', '#...', '###.', '...#', '###.'],
+    '6': ['.##.', '#...', '###.', '#..#', '.##.'],
+    '7': ['####', '...#', '..#.', '.#..', '.#..'],
+    '8': ['.##.', '#..#', '.##.', '#..#', '.##.'],
+    '9': ['.##.', '#..#', '.###', '...#', '.##.'],
+    ':': ['..', '**', '..', '**', '..'],
+  };
 
   // =========================================================================
   // Utilities
@@ -129,112 +242,130 @@
   // =========================================================================
   const rng = mulberry32(20261225);
 
-  // 1. Background Ambient Stars (subtle fixed distant stars)
+  // 1. Background Ambient Stars (subtle fixed distant stars in the grid)
   const bgStars = [];
-  for (let i = 0; i < 88; i++) {
+  for (let i = 0; i < 85; i++) {
     bgStars.push({
       col: Math.floor(rng() * COLS),
       row: Math.floor(rng() * (ROWS * 0.78)),
       ch: rng() < 0.72 ? '.' : rng() < 0.88 ? '·' : '+',
       phase: rng() * Math.PI * 2,
-      speed: 1.0 + rng() * 1.8,
-      baseAlpha: 0.14 + rng() * 0.24,
+      speed: 1.0 + rng() * 1.6,
+      baseAlpha: 0.14 + rng() * 0.22,
     });
   }
 
-  // 2. Falling Snowflakes (varied: +, *, 일본식 온점 '。', ., ·, ,)
-  const SNOW_GLYPHS_FAR = ['.', '·', ',', '.'];
+  // 2. Dense, Slow Grid-Integrated Snowflakes (+, *, 일본식 온점 '。', ., ·, ,)
+  // Foreground snowflakes sit at high Z so they REPLACE tree glyphs as they pass over!
+  const SNOW_GLYPHS_FAR = ['.', '·', ',', '.', '。'];
   const SNOW_GLYPHS_MID = ['+', '*', '。', '.', '+'];
-  const SNOW_GLYPHS_NEAR = ['*', '+', '。', '*'];
+  const SNOW_GLYPHS_NEAR = ['*', '+', '。', '.', '*'];
 
   const snowflakes = [];
-  const SNOW_COUNT = 165;
+  const SNOW_COUNT = 285;
   for (let i = 0; i < SNOW_COUNT; i++) {
-    const depth = rng(); // 0 = far, 1 = near
+    const depth = rng(); // 0 = far sky, 1 = near foreground (replaces tree cells!)
+    const isForeground = depth > 0.56; // ~44% pass in front of & replace tree characters
     let glyphPool = SNOW_GLYPHS_FAR;
-    if (depth > 0.68) glyphPool = SNOW_GLYPHS_NEAR;
-    else if (depth > 0.3) glyphPool = SNOW_GLYPHS_MID;
+    if (isForeground) glyphPool = SNOW_GLYPHS_NEAR;
+    else if (depth > 0.28) glyphPool = SNOW_GLYPHS_MID;
 
     const ch = glyphPool[Math.floor(rng() * glyphPool.length)];
+    // Slow, serene snowfall in grid rows/sec
+    const vyRows = 2.4 + depth * 4.4 + rng() * 1.1; // ~2.4..7.9 rows/sec (gentle & calm)
     snowflakes.push({
-      x: rng(),
-      y: -rng() * 1.15,
+      col0: rng() * COLS,
+      row0: -rng() * (ROWS * 0.92), // spans across screen quickly yet starts from above
       depth,
+      isForeground,
       ch,
-      vy: 0.045 + depth * 0.095 + rng() * 0.02,
-      swayAmp: 0.008 + rng() * 0.02,
-      swayFreq: 0.6 + rng() * 1.1,
+      vyRows,
+      swayCols: 0.7 + rng() * 1.9,
+      swayFreq: 0.35 + rng() * 0.65,
       phase: rng() * Math.PI * 2,
       twinklePhase: rng() * Math.PI * 2,
-      bornAt: rng() * 1.6,
-      targetColor:
-        depth > 0.65
-          ? [226, 240, 255]
-          : depth > 0.3
-            ? [182, 208, 238]
-            : [130, 158, 194],
-      baseAlpha: 0.28 + depth * 0.58,
-      isForeground: depth > 0.84,
+      bornAt: rng() * 1.8,
+      targetColor: isForeground
+        ? [235, 245, 255]
+        : depth > 0.28
+          ? [186, 212, 242]
+          : [132, 160, 196],
+      baseAlpha: isForeground ? 0.72 + (depth - 0.56) * 0.62 : 0.28 + depth * 0.44,
     });
   }
 
-  // 3. Circular Accumulated Snow Ground (3D perspective circle beneath tree)
+  // 3. Large, Dense Circular Accumulated Snow Ground (filled cell-by-cell!)
   const groundPoints = [];
-  const GROUND_GLYPHS_INNER = ['。', '*', '+', '.', '·', ','];
-  const GROUND_GLYPHS_OUTER = ['.', ',', '·', '。', '+'];
-  const GROUND_COUNT = 560;
-  for (let i = 0; i < GROUND_COUNT; i++) {
-    const rad = Math.pow(rng(), 0.58);
-    const phi = rng() * Math.PI * 2;
-    const gx = Math.cos(phi) * rad;
-    const gy = Math.sin(phi) * rad;
-    const moundLift = (1 - rad * rad) * 0.95;
-    const col = Math.round(LAYOUT.CENTER_COL + gx * LAYOUT.GROUND_RX);
-    const row = Math.round(LAYOUT.GROUND_CENTER_ROW + gy * LAYOUT.GROUND_RY - moundLift);
+  const GROUND_GLYPHS_CORE = ['*', '+', '。', '.', '·', '~', ','];
+  const GROUND_GLYPHS_EDGE = ['。', '.', ',', '·', '+'];
 
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) continue;
+  const gMinRow = Math.max(0, Math.floor(LAYOUT.GROUND_CENTER_ROW - LAYOUT.GROUND_RY - 2));
+  const gMaxRow = Math.min(ROWS - 1, Math.ceil(LAYOUT.GROUND_CENTER_ROW + LAYOUT.GROUND_RY + 2));
+  const gMinCol = Math.max(0, Math.floor(LAYOUT.CENTER_COL - LAYOUT.GROUND_RX - 2));
+  const gMaxCol = Math.min(COLS - 1, Math.ceil(LAYOUT.CENTER_COL + LAYOUT.GROUND_RX + 2));
 
-    const coreBias = rad * 1.1;
-    const appearTime =
-      TIMELINE.SNOW_GROUND_START +
-      clamp(rng() * 2.1 + coreBias * 0.55 + (rng() < 0.15 ? rng() * 1.6 : 0), 0, 4.2);
+  for (let row = gMinRow; row <= gMaxRow; row++) {
+    for (let col = gMinCol; col <= gMaxCol; col++) {
+      const nx = (col - LAYOUT.CENTER_COL) / LAYOUT.GROUND_RX;
+      const ny = (row - LAYOUT.GROUND_CENTER_ROW) / LAYOUT.GROUND_RY;
+      // Subtle organic snowdrift contour jitter along perimeter
+      const angle = Math.atan2(ny, nx);
+      const contourJitter = 1 + 0.05 * Math.sin(angle * 5 + 0.7) + 0.03 * Math.cos(angle * 9);
+      const rad = Math.hypot(nx, ny) / contourJitter;
 
-    const pool = rad < 0.68 ? GROUND_GLYPHS_INNER : GROUND_GLYPHS_OUTER;
-    const ch = pool[Math.floor(rng() * pool.length)];
+      if (rad > 1.06) continue;
 
-    const edgeFade = 1 - Math.pow(rad, 2.2) * 0.65;
-    const frontShade = 0.82 + 0.18 * clamp(gy, -1, 1);
-    const lum = clamp(edgeFade * frontShade, 0.28, 1.0);
+      // Dense snow carpet in core (~94%), organically tapering to delicate flakes at outer rim
+      let keepProb = 0.94;
+      if (rad > 0.76) {
+        keepProb = clamp(0.94 - ((rad - 0.76) / 0.30) * 0.76, 0.14, 0.94);
+      }
+      if (rng() > keepProb) continue;
 
-    groundPoints.push({
-      col,
-      row,
-      rad,
-      gx,
-      gy,
-      ch,
-      appearTime,
-      targetColor: [
-        Math.round(158 + 72 * lum),
-        Math.round(188 + 56 * lum),
-        Math.round(224 + 31 * lum),
-      ],
-      baseAlpha: 0.35 + 0.58 * lum,
-      twinklePhase: rng() * Math.PI * 2,
-    });
+      // Slight domed mound appearance: shift subtle height shading
+      const pool = rad < 0.72 ? GROUND_GLYPHS_CORE : GROUND_GLYPHS_EDGE;
+      const ch = pool[Math.floor(rng() * pool.length)];
+
+      // Accumulates gradually from scattered flakes into a full thick circular snow blanket
+      const appearTime =
+        TIMELINE.SNOW_GROUND_START +
+        clamp(rng() * 2.4 + rad * 0.75 + (rng() < 0.18 ? rng() * 1.9 : 0), 0, 5.2);
+
+      // Rich 3D circular snow shading: crisp moonlit snow on inner mound, soft twilight fade at rim
+      const edgeFade = 1 - Math.pow(clamp(rad, 0, 1), 2.3) * 0.62;
+      const frontShade = 0.80 + 0.20 * clamp(ny, -1, 1);
+      const moundHighlight = (1 - clamp(rad, 0, 1)) * 0.18;
+      const lum = clamp(edgeFade * frontShade + moundHighlight, 0.28, 1.0);
+
+      groundPoints.push({
+        col,
+        row,
+        rad,
+        ny,
+        ch,
+        appearTime,
+        targetColor: [
+          Math.round(162 + 80 * lum),
+          Math.round(192 + 58 * lum),
+          Math.round(226 + 29 * lum),
+        ],
+        baseAlpha: 0.42 + 0.54 * lum,
+        twinklePhase: rng() * Math.PI * 2,
+      });
+    }
   }
 
   // 4. Tree Trunk (밑둥) — 3D rotating cylinder
   const trunkPoints = [];
   const TRUNK_GLYPHS = ['|', '#', 'H', 'I', 'M', ':'];
-  const TRUNK_ROWS = 16;
+  const TRUNK_ROWS = 18;
   for (let i = 0; i < TRUNK_ROWS; i++) {
     const v = i / (TRUNK_ROWS - 1); // 0 = bottom, 1 = top
     const rowY = LAYOUT.TRUNK_BOT_ROW - v * (LAYOUT.TRUNK_BOT_ROW - LAYOUT.TRUNK_TOP_ROW);
-    const numAround = 26;
+    const numAround = 28;
     for (let j = 0; j < numAround; j++) {
       const theta = (j / numAround) * Math.PI * 2 + rng() * 0.14;
-      const r = 0.092 + (1 - v) * 0.022 + (rng() - 0.5) * 0.008;
+      const r = 0.092 + (1 - v) * 0.024 + (rng() - 0.5) * 0.008;
       const appearTime =
         TIMELINE.TRUNK_START +
         v * (TIMELINE.TRUNK_END - TIMELINE.TRUNK_START - 0.18) +
@@ -251,7 +382,7 @@
     }
   }
 
-  // 5. Tree Foliage Points (4 overlapping 3D tiers, high-density ASCII surface)
+  // 5. Tree Foliage Points (4 overlapping 3D tiers, dense ASCII surface)
   const treePoints = [];
   const treeHeightRows = LAYOUT.TREE_BOT_ROW - LAYOUT.TREE_TOP_ROW;
 
@@ -265,7 +396,7 @@
       const u = ri / rings; // 0 = top of tier, 1 = bottom skirt of tier
       const h = tier.top + u * spanH;
       const baseR = tierRadius(k, u);
-      const countAround = Math.max(10, Math.round(baseR * 165));
+      const countAround = Math.max(10, Math.round(baseR * 180));
 
       for (let j = 0; j < countAround; j++) {
         const theta =
@@ -275,7 +406,6 @@
         const radialLayer = rng() < 0.78 ? 1.0 : 0.72 + rng() * 0.25;
         const r = Math.max(0.012, baseR * boughWave * radialLayer + (rng() - 0.5) * 0.015);
 
-        // Tier grows bottom (u=1) -> top (u=0)
         const growthProgress = 1 - u;
         const appearTime =
           tStart +
@@ -291,7 +421,6 @@
         }
 
         const skirtBoost = u > 0.88 ? 1.12 : 1.0;
-
         const charIdx = Math.floor(rng() * WORD.length);
         const ch = rng() < 0.91 ? WORD[charIdx] : rng() < 0.5 ? '+' : '*';
 
@@ -322,7 +451,7 @@
 
   // 6. Spiral Garland / String Ornament (줄 형태 오너먼트)
   const garlandPoints = [];
-  const GARLAND_SAMPLES = 340;
+  const GARLAND_SAMPLES = 360;
   const GARLAND_TURNS = 4.6;
   const GARLAND_GLYPHS = ['o', '*', '~', '°', 'o', '·'];
 
@@ -407,8 +536,8 @@
   const GOLDEN_ANGLE = 2.39996323;
 
   for (let i = 0; i < ORN_COUNT; i++) {
-    const frac = i / (ORN_COUNT - 1); // 0 = bottom, 1 = upper
-    const h = 0.91 - frac * 0.70; // 0.91 .. 0.21
+    const frac = i / (ORN_COUNT - 1);
+    const h = 0.91 - frac * 0.70;
     const theta = i * GOLDEN_ANGLE + 0.55;
     const r = maxTreeRadiusAtH(h) + 0.052;
     const type = ORN_TYPES[i % ORN_TYPES.length];
@@ -441,14 +570,11 @@
 
   // 8. Top Star (맨 위 별 + 빛줄기)
   const topStarCells = [
-    // Core (ring 0)
     { dx: 0, dy: 0, ch: '@', ring: 0, color: [255, 246, 182] },
-    // Inner cross (ring 1)
     { dx: -1, dy: 0, ch: '*', ring: 1, color: [255, 224, 108] },
     { dx: 1, dy: 0, ch: '*', ring: 1, color: [255, 224, 108] },
     { dx: 0, dy: -1, ch: '*', ring: 1, color: [255, 224, 108] },
     { dx: 0, dy: 1, ch: '*', ring: 1, color: [255, 224, 108] },
-    // Diamond & medium rays (ring 2)
     { dx: -2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
     { dx: 2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
     { dx: 0, dy: -2, ch: '|', ring: 2, color: [255, 206, 74] },
@@ -457,7 +583,6 @@
     { dx: 1, dy: -1, ch: '/', ring: 2, color: [255, 212, 86] },
     { dx: -1, dy: 1, ch: '/', ring: 2, color: [255, 212, 86] },
     { dx: 1, dy: 1, ch: '\\', ring: 2, color: [255, 212, 86] },
-    // Outer shimmering rays (ring 3)
     { dx: -3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
     { dx: 3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
     { dx: -4, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
@@ -473,7 +598,7 @@
   ];
 
   // =========================================================================
-  // Grid Framebuffers (Z-buffered ASCII Grid)
+  // Unified Z-Buffered ASCII Grid Framebuffer
   // =========================================================================
   const GRID_SIZE = COLS * ROWS;
   const gridChar = new Array(GRID_SIZE);
@@ -501,6 +626,131 @@
       gridG[idx] = g;
       gridB[idx] = b;
       gridA[idx] = a;
+    }
+  }
+
+  // Plot ASCII-art greeting word ('Merry' or 'christmas') directly into the grid
+  function plotAsciiGreeting(word, startCol, topRow, startTime, endTime, t, dimFactor) {
+    if (t < startTime) return;
+    const len = word.length;
+    const span = Math.max(0.01, endTime - startTime);
+    const targetRed = [255, 44, 66];
+    let curCol = startCol;
+
+    for (let ci = 0; ci < len; ci++) {
+      const glyph = GREETING_FONT[word[ci]];
+      if (!glyph) continue;
+      const w = glyph[0].length;
+      const charStart = startTime + (ci / Math.max(1, len - 1)) * (span * 0.72);
+      const age = t - charStart;
+
+      if (age > 0) {
+        const fade = easeOutCubic(clamp(age / 0.28, 0, 1));
+        const rgb = whiteToColor(targetRed, age, 0.85);
+        const pulse = 0.92 + 0.08 * Math.sin(t * 2.2 + ci * 0.45);
+        const alpha = fade * pulse * dimFactor;
+
+        for (let dy = 0; dy < glyph.length; dy++) {
+          const line = glyph[dy];
+          for (let dx = 0; dx < w; dx++) {
+            if (line[dx] === '.') continue;
+            // Subtle ASCII glyph variation for rich texture
+            const ch = (dx + dy) % 5 === 0 ? '@' : '#';
+            plotCell(
+              curCol + dx,
+              topRow + dy,
+              ch,
+              rgb[0],
+              rgb[1],
+              rgb[2],
+              alpha,
+              32.0
+            );
+          }
+        }
+      }
+
+      curCol += w + 1;
+    }
+  }
+
+  // Plot ASCII-art KST countdown + caption directly into the grid
+  function plotAsciiCountdown(t) {
+    if (t < TIMELINE.COUNTDOWN_START) return;
+    const age = t - TIMELINE.COUNTDOWN_START;
+    const reveal = easeOutCubic(clamp(age / 0.9, 0, 1));
+    const kst = getKstCountdown();
+
+    // 1. Single-row ASCII caption centered above digits
+    const caption = kst.isChristmasDay
+      ? '· K S T · M E R R Y · C H R I S T M A S ·'
+      : '· K S T · U N T I L · C H R I S T M A S ·';
+    const capStartCol = Math.round((COLS - caption.length) / 2);
+    const capColor = whiteToColor([188, 206, 234], age, 0.9);
+    for (let i = 0; i < caption.length; i++) {
+      const ch = caption[i];
+      if (ch === ' ') continue;
+      plotCell(
+        capStartCol + i,
+        LAYOUT.CAPTION_ROW,
+        ch,
+        capColor[0],
+        capColor[1],
+        capColor[2],
+        reveal * 0.82,
+        40.0
+      );
+    }
+
+    // 2. 5-row ASCII-art DD:HH:MM:SS digits centered inside the grid
+    const str = kst.text;
+    let totalW = 0;
+    for (let i = 0; i < str.length; i++) {
+      const g = DIGIT_FONT[str[i]];
+      if (!g) continue;
+      totalW += g[0].length;
+      if (i < str.length - 1) totalW += 1;
+    }
+
+    let curCol = Math.round((COLS - totalW) / 2);
+    const digitTarget = [255, 228, 148];
+    const colonTarget = [255, 84, 98];
+    const colonPulse = 0.62 + 0.38 * Math.sin(t * Math.PI * 2);
+
+    for (let i = 0; i < str.length; i++) {
+      const chKey = str[i];
+      const glyph = DIGIT_FONT[chKey];
+      if (!glyph) continue;
+      const w = glyph[0].length;
+      const cAge = age - i * 0.045;
+
+      if (cAge > 0) {
+        const cFade = easeOutCubic(clamp(cAge / 0.32, 0, 1));
+        const isColon = chKey === ':';
+        const rgb = whiteToColor(isColon ? colonTarget : digitTarget, cAge, 0.95);
+        const alpha = cFade * (isColon ? colonPulse : 1.0);
+
+        for (let dy = 0; dy < glyph.length; dy++) {
+          const line = glyph[dy];
+          for (let dx = 0; dx < w; dx++) {
+            const sym = line[dx];
+            if (sym === '.') continue;
+            const drawCh = isColon ? '*' : (dx + dy) % 4 === 0 ? '@' : '#';
+            plotCell(
+              curCol + dx,
+              LAYOUT.COUNTDOWN_TOP_ROW + dy,
+              drawCh,
+              rgb[0],
+              rgb[1],
+              rgb[2],
+              alpha,
+              40.0
+            );
+          }
+        }
+      }
+
+      curCol += w + 1;
     }
   }
 
@@ -554,7 +804,6 @@
   const bloomCanvasB = document.createElement('canvas');
   const bloomCtxB = bloomCanvasB.getContext('2d');
 
-  // Logical drawing coordinates stay at crisp 1080x2316 (or aspect-matched high-res)
   let renderW = BASE_WIDTH;
   let renderH = BASE_HEIGHT;
   let cellW = renderW / COLS;
@@ -567,7 +816,6 @@
     const cssH = Math.max(400, rect.height);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
-    // Guarantee at least 1080x2316 native backing resolution while preserving actual viewport ratio
     const nativeW = Math.round(cssW * dpr);
     const nativeH = Math.round(cssH * dpr);
     const scaleToBase = Math.max(1, BASE_WIDTH / nativeW, BASE_HEIGHT / nativeH);
@@ -584,7 +832,6 @@
     sharpCanvas.height = renderH;
     sharpCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Downscaled bloom buffers
     bloomCanvasA.width = Math.max(120, Math.round(renderW * 0.24));
     bloomCanvasA.height = Math.max(240, Math.round(renderH * 0.24));
     bloomCanvasB.width = Math.max(60, Math.round(renderW * 0.10));
@@ -599,118 +846,7 @@
   resize();
 
   // =========================================================================
-  // Render Helpers
-  // =========================================================================
-  function drawSnowLayer(ctx, t, foregroundOnly, sceneDim) {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    for (let i = 0; i < snowflakes.length; i++) {
-      const s = snowflakes[i];
-      if (s.isForeground !== foregroundOnly) continue;
-
-      const age = t - s.bornAt;
-      if (age <= 0) continue;
-
-      const fallY = ((s.y + s.vy * age) % 1.06 + 1.06) % 1.06 - 0.03;
-      const swayX = s.x + Math.sin(age * s.swayFreq + s.phase) * s.swayAmp;
-      const px = (((swayX % 1) + 1) % 1) * renderW;
-      const py = fallY * renderH;
-
-      const bottomFade = fallY > 0.80 ? clamp(1 - (fallY - 0.80) / 0.18, 0, 1) : 1;
-      if (bottomFade <= 0.01) continue;
-
-      const twinkle = 0.78 + 0.22 * Math.sin(t * 2.8 + s.twinklePhase);
-      const col = whiteToColor(s.targetColor, age, 0.9);
-      const alpha = s.baseAlpha * twinkle * bottomFade * sceneDim;
-
-      const sizeScale = s.ch === '。' ? 0.86 : 0.78 + s.depth * 0.44;
-      const fontSize = Math.max(14, gridFontPx * sizeScale);
-      ctx.font = `${s.depth > 0.65 ? 700 : 400} ${fontSize.toFixed(1)}px ${FONT_FAMILY}`;
-      ctx.fillStyle = `rgba(${col[0] | 0}, ${col[1] | 0}, ${col[2] | 0}, ${alpha.toFixed(3)})`;
-      ctx.fillText(s.ch, px, py);
-    }
-  }
-
-  function drawGreetingWord(ctx, word, centerX, centerY, startTime, endTime, t, dimFactor) {
-    if (t < startTime) return;
-    const len = word.length;
-    const span = Math.max(0.01, endTime - startTime);
-    const fontSize = clamp(renderW * 0.047, 40, 66);
-    const charStep = fontSize * 0.66;
-    const totalW = charStep * (len - 1);
-    const startX = centerX - totalW / 2;
-
-    ctx.font = `700 ${fontSize.toFixed(1)}px ${FONT_FAMILY}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    const targetRed = [255, 46, 68];
-
-    for (let i = 0; i < len; i++) {
-      const charStart = startTime + (i / Math.max(1, len - 1)) * (span * 0.75);
-      const age = t - charStart;
-      if (age <= 0) continue;
-
-      const fadeIn = easeOutCubic(clamp(age / 0.25, 0, 1));
-      const rgb = whiteToColor(targetRed, age, 0.82);
-      const pulse = 0.94 + 0.06 * Math.sin(t * 2.2 + i * 0.4);
-      const alpha = fadeIn * pulse * dimFactor;
-
-      ctx.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha.toFixed(3)})`;
-      ctx.fillText(word[i], startX + i * charStep, centerY);
-    }
-  }
-
-  function drawCountdown(ctx, t) {
-    if (t < TIMELINE.COUNTDOWN_START) return;
-    const age = t - TIMELINE.COUNTDOWN_START;
-    const reveal = easeOutCubic(clamp(age / 0.9, 0, 1));
-
-    const kst = getKstCountdown();
-    const labelY = renderH * 0.872;
-    const timerY = renderH * 0.916;
-
-    // Subtle KST caption (white -> cool silver-gold)
-    const labelSize = clamp(renderW * 0.028, 24, 38);
-    const labelColor = whiteToColor([184, 198, 224], age, 0.9);
-    ctx.font = `400 ${labelSize.toFixed(1)}px ${FONT_FAMILY}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = `rgba(${labelColor[0] | 0}, ${labelColor[1] | 0}, ${labelColor[2] | 0}, ${(reveal * 0.78).toFixed(3)})`;
-    const caption = kst.isChristmasDay ? 'KST · MERRY CHRISTMAS' : 'KST · UNTIL CHRISTMAS';
-    ctx.fillText(caption, renderW * 0.5, labelY);
-
-    // Main DD:HH:MM:SS digits (white -> luminous festive champagne gold, colons crimson-gold)
-    const timerSize = clamp(renderW * 0.074, 66, 104);
-    ctx.font = `700 ${timerSize.toFixed(1)}px ${FONT_FAMILY}`;
-    const fullStr = kst.text;
-    const charStep = timerSize * 0.64;
-    const totalW = charStep * (fullStr.length - 1);
-    const startX = renderW * 0.5 - totalW / 2;
-
-    const digitTarget = [255, 228, 152];
-    const colonTarget = [255, 86, 98];
-    const colonPulse = 0.65 + 0.35 * Math.sin(t * Math.PI * 2);
-
-    for (let i = 0; i < fullStr.length; i++) {
-      const ch = fullStr[i];
-      const charDelay = i * 0.045;
-      const cAge = age - charDelay;
-      if (cAge <= 0) continue;
-
-      const cFade = easeOutCubic(clamp(cAge / 0.32, 0, 1));
-      const isColon = ch === ':';
-      const rgb = whiteToColor(isColon ? colonTarget : digitTarget, cAge, 0.95);
-      const alpha = cFade * (isColon ? colonPulse : 1.0);
-
-      ctx.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha.toFixed(3)})`;
-      ctx.fillText(ch, startX + i * charStep, timerY);
-    }
-  }
-
-  // =========================================================================
-  // Main Frame Simulation & Render
+  // Main Frame Simulation & Render (100% Unified ASCII Grid)
   // =========================================================================
   let startTimeMs = performance.now();
   let spinTimer = null;
@@ -719,7 +855,7 @@
     startTimeMs = performance.now();
     if (withSpin) {
       replayBtn.classList.remove('spinning');
-      void replayBtn.offsetWidth; // trigger reflow so repeated taps spin cleanly
+      void replayBtn.offsetWidth;
       replayBtn.classList.add('spinning');
       if (spinTimer) clearTimeout(spinTimer);
       spinTimer = setTimeout(() => replayBtn.classList.remove('spinning'), 480);
@@ -731,17 +867,17 @@
   function render(nowMs) {
     const t = (nowMs - startTimeMs) / 1000;
 
-    // Dimming curve at Phase 8 (keeps tree enchantingly visible while spotlighting countdown)
+    // Dimming curve at Phase 8 (dims scene gracefully while ASCII countdown shines at full brightness)
     const dimProgress = easeInOutCubic(ramp(t, TIMELINE.DIM_START, TIMELINE.DIM_END));
-    const sceneDim = 1 - dimProgress * 0.42; // 1.0 -> 0.58
-    const greetingDim = 1 - dimProgress * 0.16; // 1.0 -> 0.84
+    const sceneDim = 1 - dimProgress * 0.46; // 1.0 -> 0.54
+    const greetingDim = 1 - dimProgress * 0.18; // 1.0 -> 0.82
 
     const rot = t * ROT_SPEED;
 
-    // --- 1. Populate Z-Buffered ASCII Grid ---
+    // --- 1. Populate Unified Z-Buffered ASCII Grid ---
     clearGrid();
 
-    // 1A. Subtle background stars
+    // 1A. Subtle background stars (z = -100)
     for (let i = 0; i < bgStars.length; i++) {
       const st = bgStars[i];
       const tw = 0.65 + 0.35 * Math.sin(t * st.speed + st.phase);
@@ -749,7 +885,37 @@
       plotCell(st.col, st.row, st.ch, 155, 182, 222, a, -100);
     }
 
-    // 1B. Circular snow ground accumulation
+    // 1B. Dense, Slow Falling Snowflakes inside the SAME ASCII grid
+    // Background snow (z = -50) falls behind the tree;
+    // Foreground snow (z = +25) falls OVER the tree and REPLACES tree glyphs cell-for-cell!
+    const snowCycleRows = ROWS + 8;
+    for (let i = 0; i < snowflakes.length; i++) {
+      const s = snowflakes[i];
+      const age = t - s.bornAt;
+      if (age <= 0) continue;
+
+      const rawRow = s.row0 + s.vyRows * age;
+      if (rawRow < 0) continue;
+      const wrappedRow = ((rawRow % snowCycleRows) + snowCycleRows) % snowCycleRows - 2;
+      const row = Math.round(wrappedRow);
+      if (row < 0 || row >= ROWS) continue;
+
+      // Soft fade near the very bottom below the circular snow mound
+      const bottomFade = row > 96 ? clamp(1 - (row - 96) / 14, 0, 1) : 1;
+      if (bottomFade <= 0.02) continue;
+
+      const swayCol = s.col0 + Math.sin(age * s.swayFreq + s.phase) * s.swayCols;
+      const col = Math.floor(((swayCol % COLS) + COLS) % COLS);
+
+      const twinkle = 0.80 + 0.20 * Math.sin(t * 2.5 + s.twinklePhase);
+      const rgb = whiteToColor(s.targetColor, age, 0.9);
+      const alpha = s.baseAlpha * twinkle * bottomFade * sceneDim;
+      const z = s.isForeground ? 25.0 : -50.0;
+
+      plotCell(col, row, s.ch, rgb[0], rgb[1], rgb[2], alpha, z);
+    }
+
+    // 1C. Large, Dense Circular Snow Ground Accumulation
     const treeGlowPresence = easeOutCubic(ramp(t, TIMELINE.TIER_WINDOWS[3][0], TIMELINE.GARLAND_END));
     for (let i = 0; i < groundPoints.length; i++) {
       const gp = groundPoints[i];
@@ -758,22 +924,22 @@
 
       const fade = easeOutCubic(clamp(age / 0.35, 0, 1));
       const rgb = whiteToColor(gp.targetColor, age, 0.9);
-      const shimmer = 0.90 + 0.10 * Math.sin(t * 2.1 + gp.twinklePhase);
+      const shimmer = 0.90 + 0.10 * Math.sin(t * 2.0 + gp.twinklePhase);
 
       let r = rgb[0];
       let g = rgb[1];
       let b = rgb[2];
-      if (gp.rad < 0.55 && treeGlowPresence > 0) {
-        const bounce = (1 - gp.rad / 0.55) * 0.16 * treeGlowPresence;
-        g = Math.min(255, g + 35 * bounce);
+      if (gp.rad < 0.60 && treeGlowPresence > 0) {
+        const bounce = (1 - gp.rad / 0.60) * 0.16 * treeGlowPresence;
+        g = Math.min(255, g + 34 * bounce);
         r = Math.min(255, r + 18 * bounce);
       }
 
-      const z = gp.gy * 0.35 - 0.12;
+      const z = gp.ny * 0.35 - 0.12;
       plotCell(gp.col, gp.row, gp.ch, r, g, b, gp.baseAlpha * fade * shimmer * sceneDim, z);
     }
 
-    // 1C. Rotating Tree Trunk (밑둥)
+    // 1D. Rotating Tree Trunk (밑둥)
     if (t >= TIMELINE.TRUNK_START) {
       for (let i = 0; i < trunkPoints.length; i++) {
         const tp = trunkPoints[i];
@@ -804,7 +970,7 @@
       }
     }
 
-    // 1D. Rotating 4-Tier Tree Foliage
+    // 1E. Rotating 4-Tier Tree Foliage
     if (t >= TIMELINE.TIER_WINDOWS[3][0]) {
       for (let i = 0; i < treePoints.length; i++) {
         const pt = treePoints[i];
@@ -820,7 +986,7 @@
         const persp = 1 + z * 0.14;
 
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(pt.rowY + z * 1.35);
+        const row = Math.round(pt.rowY + z * 1.45);
 
         const diffuse = clamp(sinT * -0.42 + cosT * 0.86 + 0.14, 0, 1);
         const rim = Math.pow(1 - Math.abs(cosT), 2.2) * (cosT > -0.25 ? 0.26 : 0.06);
@@ -841,7 +1007,7 @@
       }
     }
 
-    // 1E. Rotating Spiral String Garland (줄 형태 오너먼트)
+    // 1F. Rotating Spiral String Garland (줄 형태 오너먼트)
     if (t >= TIMELINE.GARLAND_START) {
       for (let i = 0; i < garlandPoints.length; i++) {
         const gp = garlandPoints[i];
@@ -858,7 +1024,7 @@
 
         const persp = 1 + z * 0.14;
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(gp.rowY + z * 1.35);
+        const row = Math.round(gp.rowY + z * 1.45);
 
         const edgeSoft = clamp((cosT + 0.14) / 0.26, 0, 1);
         const twinkle = gp.isBulb
@@ -873,7 +1039,7 @@
       }
     }
 
-    // 1F. Rotating Sphere / Star / Stocking Ornaments (구/별/양말)
+    // 1G. Rotating Sphere / Star / Stocking Ornaments (구/별/양말)
     if (t >= TIMELINE.ORN_START) {
       for (let i = 0; i < ornaments.length; i++) {
         const orn = ornaments[i];
@@ -891,7 +1057,7 @@
         const persp = 1 + z * 0.14;
 
         const centerCol = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const centerRow = Math.round(orn.rowY + z * 1.35);
+        const centerRow = Math.round(orn.rowY + z * 1.45);
 
         const edgeFade = clamp((cosT + 0.05) / 0.25, 0, 1);
         const popFade = easeOutCubic(clamp(age / 0.24, 0, 1));
@@ -921,7 +1087,7 @@
       }
     }
 
-    // 1G. Top Star + Shimmering Rays (맨 위 별)
+    // 1H. Top Star + Shimmering Rays (맨 위 별)
     if (t >= TIMELINE.STAR_START) {
       const starBaseAge = t - TIMELINE.STAR_START;
       const starCol = Math.round(LAYOUT.CENTER_COL);
@@ -950,21 +1116,44 @@
           rgb[1],
           rgb[2],
           fade * rayPulse * sceneDim,
-          10.0
+          28.0
         );
       }
     }
 
-    // --- 2. Render Sharp Layer onto High-Res Offscreen Canvas ---
+    // 1I. Red ASCII-Art 'Merry' (upper-left) & 'christmas' (upper-right) inside the grid!
+    // 'Merry' width = 21 cols -> cols 10..30; 'christmas' width = 35 cols -> cols 50..84
+    plotAsciiGreeting(
+      'Merry',
+      10,
+      LAYOUT.GREETING_TOP_ROW,
+      TIMELINE.MERRY_START,
+      TIMELINE.MERRY_END,
+      t,
+      greetingDim
+    );
+    plotAsciiGreeting(
+      'christmas',
+      50,
+      LAYOUT.GREETING_TOP_ROW,
+      TIMELINE.CHRISTMAS_START,
+      TIMELINE.CHRISTMAS_END,
+      t,
+      greetingDim
+    );
+
+    // 1J. Bottom-Center ASCII-Art KST Countdown inside the grid!
+    plotAsciiCountdown(t);
+
+    // --- 2. Render Single Unified ASCII Grid onto High-Res Offscreen Canvas ---
     sharpCtx.clearRect(0, 0, renderW, renderH);
-
-    // 2A. Back-layer falling snow
-    drawSnowLayer(sharpCtx, t, false, sceneDim);
-
-    // 2B. Draw Z-buffered ASCII Grid
-    sharpCtx.font = `700 ${gridFontPx.toFixed(1)}px ${FONT_FAMILY}`;
     sharpCtx.textAlign = 'center';
     sharpCtx.textBaseline = 'middle';
+
+    const mainFont = `700 ${gridFontPx.toFixed(1)}px ${FONT_FAMILY}`;
+    const cjkDotFont = `700 ${(gridFontPx * 0.86).toFixed(1)}px ${FONT_FAMILY}`;
+    let lastWasDot = false;
+    sharpCtx.font = mainFont;
 
     for (let row = 0; row < ROWS; row++) {
       const py = (row + 0.5) * cellH;
@@ -976,37 +1165,18 @@
         const a = gridA[idx];
         if (a <= 0.01) continue;
 
+        // Keep Japanese full stop '。' neatly scaled inside its grid cell
+        const isDot = ch === '。';
+        if (isDot !== lastWasDot) {
+          sharpCtx.font = isDot ? cjkDotFont : mainFont;
+          lastWasDot = isDot;
+        }
+
         const px = (col + 0.5) * cellW;
         sharpCtx.fillStyle = `rgba(${gridR[idx] | 0}, ${gridG[idx] | 0}, ${gridB[idx] | 0}, ${a.toFixed(3)})`;
         sharpCtx.fillText(ch, px, py);
       }
     }
-
-    // 2C. Foreground sparse falling snowflakes
-    drawSnowLayer(sharpCtx, t, true, sceneDim);
-
-    // 2D. Red 'Merry' (upper-left) & 'christmas' (upper-right)
-    const greetingY = (LAYOUT.TREE_TOP_ROW + 4.8) * cellH;
-    drawGreetingWord(
-      sharpCtx,
-      'Merry',
-      renderW * 0.205,
-      greetingY,
-      TIMELINE.MERRY_START,
-      TIMELINE.MERRY_END,
-      t,
-      greetingDim
-    );
-    drawGreetingWord(
-      sharpCtx,
-      'christmas',
-      renderW * 0.785,
-      greetingY,
-      TIMELINE.CHRISTMAS_START,
-      TIMELINE.CHRISTMAS_END,
-      t,
-      greetingDim
-    );
 
     // --- 3. Composite Final Frame + Phosphor Bloom ---
     const bgGrad = stageCtx.createRadialGradient(
@@ -1017,7 +1187,7 @@
       renderH * 0.52,
       renderH * 0.72
     );
-    const bgBoost = 1 - dimProgress * 0.45;
+    const bgBoost = 1 - dimProgress * 0.5;
     bgGrad.addColorStop(0, `rgb(${(7 * bgBoost) | 0}, ${(13 * bgBoost) | 0}, ${(24 * bgBoost) | 0})`);
     bgGrad.addColorStop(1, '#020308');
     stageCtx.fillStyle = bgGrad;
@@ -1025,7 +1195,7 @@
 
     stageCtx.drawImage(sharpCanvas, 0, 0, renderW, renderH);
 
-    // Multi-pass downscaled bilinear bloom
+    // Multi-pass downscaled bilinear bloom (unifies snow, tree, greeting & countdown!)
     bloomCtxA.clearRect(0, 0, bloomCanvasA.width, bloomCanvasA.height);
     bloomCtxA.drawImage(sharpCanvas, 0, 0, bloomCanvasA.width, bloomCanvasA.height);
 
@@ -1034,29 +1204,11 @@
 
     stageCtx.save();
     stageCtx.globalCompositeOperation = 'lighter';
-    stageCtx.globalAlpha = 0.42 * (1 - dimProgress * 0.22);
+    stageCtx.globalAlpha = 0.44 * (1 - dimProgress * 0.18);
     stageCtx.drawImage(bloomCanvasA, 0, 0, renderW, renderH);
-    stageCtx.globalAlpha = 0.34 * (1 - dimProgress * 0.22);
+    stageCtx.globalAlpha = 0.34 * (1 - dimProgress * 0.18);
     stageCtx.drawImage(bloomCanvasB, 0, 0, renderW, renderH);
     stageCtx.restore();
-
-    // --- 4. Dimming Vignette + Bottom-Center KST Countdown ---
-    if (dimProgress > 0.001) {
-      const dimGrad = stageCtx.createLinearGradient(0, renderH * 0.55, 0, renderH);
-      dimGrad.addColorStop(0, `rgba(2, 4, 10, ${(0.08 * dimProgress).toFixed(3)})`);
-      dimGrad.addColorStop(0.55, `rgba(2, 4, 10, ${(0.42 * dimProgress).toFixed(3)})`);
-      dimGrad.addColorStop(1, `rgba(2, 4, 10, ${(0.76 * dimProgress).toFixed(3)})`);
-      stageCtx.fillStyle = dimGrad;
-      stageCtx.fillRect(0, 0, renderW, renderH);
-    }
-
-    if (t >= TIMELINE.COUNTDOWN_START) {
-      stageCtx.save();
-      stageCtx.shadowColor = 'rgba(255, 212, 118, 0.52)';
-      stageCtx.shadowBlur = Math.round(renderW * 0.032);
-      drawCountdown(stageCtx, t);
-      stageCtx.restore();
-    }
 
     requestAnimationFrame(render);
   }
