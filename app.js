@@ -57,23 +57,23 @@
     TREE_BOT_ROW: 88.0,
     TRUNK_TOP_ROW: 87.0,
     TRUNK_BOT_ROW: 95.5,
-    GROUND_CENTER_ROW: 99.5,
-    GROUND_RX: 43.0, // wide, dense circular snow mound
-    GROUND_RY: 9.5,
+    GROUND_CENTER_ROW: 101.5,
+    GROUND_RX: 44.5, // wide, dense circular snow mound
+    GROUND_RY: 11.5,
     TREE_SCALE_X: 54.5, // maps normalized radius 0.68 -> ~37 cols
-    // Terminal insert/overwrite countdown box (overlaps lower snow fringe slightly)
+    // Terminal insert/overwrite countdown box (visibly overwrites lower snowbank)
     BOX_LEFT_COL: 18,
     BOX_RIGHT_COL: 77,
-    BOX_TOP_ROW: 109,
-    BOX_BOT_ROW: 118,
-    CAPTION_ROW: 110,
-    COUNTDOWN_TOP_ROW: 112, // rows 112..116 (5-row ASCII-art digits)
+    BOX_TOP_ROW: 106,
+    BOX_BOT_ROW: 115,
+    CAPTION_ROW: 107,
+    COUNTDOWN_TOP_ROW: 109, // rows 109..113 (5-row ASCII-art digits)
   };
 
   const ROT_SPEED = 0.35;
   const WORD = 'MERRYCHRISTMAS';
   const FONT_FAMILY = "'D2Coding', 'Cascadia Code', monospace";
-  const CURSIVE_FONT = "'Pacifico', 'Brush Script MT', cursive";
+  const CURSIVE_FONT = "'Lobster', 'Brush Script MT', cursive";
 
   // =========================================================================
   // 5-Row ASCII-Art Digit Font for KST DD:HH:MM:SS Countdown
@@ -160,26 +160,30 @@
   }
 
   // =========================================================================
-  // Thick Cursive Brush-Script -> ASCII Grid Rasterizer
-  // Renders bold tilted brush script ('Pacifico') into thick ASCII cells!
+  // Thick Cursive Brush-Script -> 2x Sub-Grid ASCII Rasterizer
+  // Renders bold tilted brush script ('Lobster') into crisp, ultra-legible
+  // thick ASCII art strokes on an exact 2x subdivision of the main grid!
   // =========================================================================
+  const CURSIVE_SUB = 2;
+
   function rasterizeCursiveToAscii(text, targetCol, targetRow, boxCols, boxRows, tiltDeg, strokeRatio) {
-    // Use cell aspect ratio matching 1080x2316 on 96x128 (cellW=11.25, cellH=18.09)
-    const sampleCellW = 12;
-    const sampleCellH = 19;
-    const cw = boxCols * sampleCellW;
-    const ch = boxRows * sampleCellH;
+    const subCols = boxCols * CURSIVE_SUB;
+    const subRows = boxRows * CURSIVE_SUB;
+    // Match 1080x2316 / (96x128) cell aspect ratio (11.25 / 18.09 ≈ 0.622)
+    const sampleCellW = 8;
+    const sampleCellH = 13;
+    const cw = subCols * sampleCellW;
+    const ch = subRows * sampleCellH;
 
     const off = document.createElement('canvas');
     off.width = cw;
     off.height = ch;
     const ctx = off.getContext('2d', { willReadFrequently: true });
 
-    // Auto-fit font size so the tilted bold cursive fills the box generously
-    let fontSize = Math.round(ch * 0.68);
+    let fontSize = Math.round(ch * 0.72);
     ctx.font = `400 ${fontSize}px ${CURSIVE_FONT}`;
     const measuredW = ctx.measureText(text).width;
-    const maxAllowedW = cw * 0.88;
+    const maxAllowedW = cw * 0.92;
     if (measuredW > maxAllowedW) {
       fontSize = Math.floor(fontSize * (maxAllowedW / measuredW));
     }
@@ -194,21 +198,22 @@
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    // Extra thick brush-calligraphy stroke matching reference image
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = Math.max(4, fontSize * strokeRatio);
-    ctx.strokeText(text, 0, 0);
+    if (strokeRatio > 0) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1.5, fontSize * strokeRatio);
+      ctx.strokeText(text, 0, 0);
+    }
     ctx.fillStyle = '#ffffff';
     ctx.fillText(text, 0, 0);
     ctx.restore();
 
     const img = ctx.getImageData(0, 0, cw, ch).data;
     const cells = [];
-    let minDx = boxCols;
+    let minDx = subCols;
     let maxDx = 0;
 
-    for (let dy = 0; dy < boxRows; dy++) {
-      for (let dx = 0; dx < boxCols; dx++) {
+    for (let dy = 0; dy < subRows; dy++) {
+      for (let dx = 0; dx < subCols; dx++) {
         let sumAlpha = 0;
         const x0 = dx * sampleCellW;
         const y0 = dy * sampleCellH;
@@ -220,22 +225,23 @@
           }
         }
         const cov = sumAlpha / (sampleCellW * sampleCellH * 255);
-        if (cov < 0.17) continue;
+        // Crisp threshold preserves open cursive loops & letter gaps cleanly
+        if (cov < 0.36) continue;
 
         let glyph;
-        if (cov > 0.78) glyph = (dx + dy) % 3 === 0 ? '@' : '#';
-        else if (cov > 0.52) glyph = '#';
-        else if (cov > 0.34) glyph = '%';
-        else glyph = '+';
+        if (cov > 0.82) glyph = (dx + dy) % 3 === 0 ? '@' : '#';
+        else if (cov > 0.58) glyph = '#';
+        else glyph = '%';
 
         if (dx < minDx) minDx = dx;
         if (dx > maxDx) maxDx = dx;
 
         cells.push({
-          col: targetCol + dx,
-          row: targetRow + dy,
+          subCol: targetCol * CURSIVE_SUB + dx,
+          subRow: targetRow * CURSIVE_SUB + dy,
+          mainCol: targetCol + Math.floor(dx / CURSIVE_SUB),
+          mainRow: targetRow + Math.floor(dy / CURSIVE_SUB),
           dx,
-          dy,
           cov,
           ch: glyph,
         });
@@ -254,10 +260,9 @@
   let christmasAsciiCells = [];
 
   function buildCursiveGreetings() {
-    // Upper-left 'Merry': bold tilted cursive flanking the narrow top tree peak
-    merryAsciiCells = rasterizeCursiveToAscii('Merry', 2, 11, 41, 15, -6.5, 0.105);
-    // Upper-right 'christmas': bold tilted cursive flanking upper-right of tree
-    christmasAsciiCells = rasterizeCursiveToAscii('christmas', 51, 13, 44, 14, -5.5, 0.095);
+    // Upper-left 'Merry' & Upper-right 'christmas': thick tilted brush cursive in crisp ASCII
+    merryAsciiCells = rasterizeCursiveToAscii('Merry', 2, 11, 40, 15, -6.5, 0.022);
+    christmasAsciiCells = rasterizeCursiveToAscii('christmas', 51, 13, 44, 14, -5.5, 0.014);
   }
 
   // =========================================================================
@@ -656,11 +661,30 @@
     }
   }
 
-  // Plot thick cursive ASCII greeting sweeping left-to-right (white -> red)
-  function plotCursiveGreeting(cells, startTime, endTime, t, dimFactor) {
+  // Clear underlying main-grid snow cells under revealed thick cursive strokes
+  function maskCursiveUnderlay(cells, startTime, endTime, t) {
+    if (t < startTime || cells.length === 0) return;
+    const span = Math.max(0.01, endTime - startTime);
+    for (let i = 0; i < cells.length; i++) {
+      const c = cells[i];
+      if (t >= startTime + c.progressX * (span * 0.78)) {
+        overwriteBlankCell(c.mainCol, c.mainRow, 34.0);
+      }
+    }
+  }
+
+  // Draw crisp 2x sub-grid thick cursive ASCII art onto sharpCanvas (unified bloom!)
+  function drawCursiveGreetingSubgrid(ctx, cells, startTime, endTime, t, dimFactor) {
     if (t < startTime || cells.length === 0) return;
     const span = Math.max(0.01, endTime - startTime);
     const targetRed = [255, 38, 60];
+    const subCellW = cellW / CURSIVE_SUB;
+    const subCellH = cellH / CURSIVE_SUB;
+    const subFontPx = Math.max(6, gridFontPx / CURSIVE_SUB * 1.12);
+
+    ctx.font = `700 ${subFontPx.toFixed(1)}px ${FONT_FAMILY}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
     for (let i = 0; i < cells.length; i++) {
       const c = cells[i];
@@ -669,10 +693,13 @@
       if (age <= 0) continue;
 
       const rgb = whiteToColorStepped(targetRed, age, 0.72, 5);
-      // Slight density shading on thick brush strokes
-      const lum = 0.78 + 0.22 * c.cov;
+      const lum = 0.80 + 0.20 * c.cov;
       const alpha = lum * dimFactor;
-      plotCell(c.col, c.row, c.ch, rgb[0], rgb[1], rgb[2], alpha, 34.0);
+      const px = (c.subCol + 0.5) * subCellW;
+      const py = (c.subRow + 0.5) * subCellH;
+
+      ctx.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha.toFixed(3)})`;
+      ctx.fillText(c.ch, px, py);
     }
   }
 
@@ -1202,21 +1229,9 @@
       }
     }
 
-    // 1I. Bold Thick Cursive ASCII 'Merry' (left) & 'christmas' (right)
-    plotCursiveGreeting(
-      merryAsciiCells,
-      TIMELINE.MERRY_START,
-      TIMELINE.MERRY_END,
-      t,
-      greetingDim
-    );
-    plotCursiveGreeting(
-      christmasAsciiCells,
-      TIMELINE.CHRISTMAS_START,
-      TIMELINE.CHRISTMAS_END,
-      t,
-      greetingDim
-    );
+    // 1I. Clear snow cells beneath thick cursive ASCII 'Merry' & 'christmas'
+    maskCursiveUnderlay(merryAsciiCells, TIMELINE.MERRY_START, TIMELINE.MERRY_END, t);
+    maskCursiveUnderlay(christmasAsciiCells, TIMELINE.CHRISTMAS_START, TIMELINE.CHRISTMAS_END, t);
 
     // 1J. Terminal Insert/Overwrite Mode KST Countdown (clears & overwrites cells beneath!)
     plotTerminalInsertCountdown(t);
@@ -1253,6 +1268,24 @@
       }
     }
 
+    // 2B. Draw 2x sub-grid thick cursive ASCII 'Merry' & 'christmas' on same sharpCanvas
+    drawCursiveGreetingSubgrid(
+      sharpCtx,
+      merryAsciiCells,
+      TIMELINE.MERRY_START,
+      TIMELINE.MERRY_END,
+      t,
+      greetingDim
+    );
+    drawCursiveGreetingSubgrid(
+      sharpCtx,
+      christmasAsciiCells,
+      TIMELINE.CHRISTMAS_START,
+      TIMELINE.CHRISTMAS_END,
+      t,
+      greetingDim
+    );
+
     // --- 3. Composite Final Frame + Phosphor Bloom ---
     const bgGrad = stageCtx.createRadialGradient(
       renderW * 0.5,
@@ -1288,12 +1321,12 @@
     requestAnimationFrame(render);
   }
 
-  // Wait for D2Coding, Cascadia Code, AND Pacifico cursive font before rasterizing greetings
+  // Wait for D2Coding, Cascadia Code, AND Lobster cursive font before rasterizing greetings
   const fontReady =
     document.fonts && document.fonts.load
       ? Promise.race([
           Promise.all([
-            document.fonts.load('400 96px "Pacifico"').catch(() => null),
+            document.fonts.load('400 96px "Lobster"').catch(() => null),
             document.fonts.load('700 18px "D2Coding"').catch(() => null),
             document.fonts.ready,
           ]),
