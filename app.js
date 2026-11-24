@@ -110,12 +110,13 @@
       { at: 1.50, text: '[ 0.702] Starting text renderer ........... OK', tone: 'normal' },
       { at: 1.64, text: '[ 0.819] Syncing KST countdown timer ...... OK', tone: 'normal' },
       { at: 1.78, text: `[ 0.940] Checking D-Day (D+${dDay}) .......... OK`, tone: 'normal' },
-      { at: 1.92, text: '[ 1.085] Calibrating phosphor bloom ....... OK', tone: 'normal' },
-      { at: 2.08, text: '...', tone: 'dim' },
-      { at: 2.24, text: '...', tone: 'dim' },
-      { at: 2.40, text: '...', tone: 'dim' },
-      { at: 2.56, text: '...', tone: 'dim' },
-      { at: 2.74, text: 'Final decoding ... ', okAt: 2.98, okText: 'OK', tone: 'bright' },
+      { at: 1.92, text: '[ 1.042] Starting WebAudio beep synth ..... OK', tone: 'normal' },
+      { at: 2.04, text: '[ 1.150] Calibrating phosphor bloom ....... OK', tone: 'normal' },
+      { at: 2.18, text: '...', tone: 'dim' },
+      { at: 2.32, text: '...', tone: 'dim' },
+      { at: 2.46, text: '...', tone: 'dim' },
+      { at: 2.60, text: '...', tone: 'dim' },
+      { at: 2.76, text: 'Final decoding ... ', okAt: 2.98, okText: 'OK', tone: 'bright' },
     ];
   }
 
@@ -1172,6 +1173,302 @@
   }
 
   // =========================================================================
+  // Web Audio API Retro Chiptune & BIOS Beep Synthesizer (100% Public Domain)
+  // Song: "We Wish You a Merry Christmas" (Traditional 16th-century carol)
+  // =========================================================================
+  const soundBtn = document.getElementById('soundBtn');
+  const BEAT_SEC = 60 / 132; // 132 BPM 3/4 waltz (~21.8s full loop)
+  const SONG_LOOP_BEATS = 48;
+
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // [startBeat, durationBeats, midiNote]
+  const CAROL_MELODY = [
+    // Pickup
+    [0, 0.95, 62],
+    // Bar 1-2: We wish you a merry Christmas, we
+    [1, 0.92, 67], [2, 0.46, 67], [2.5, 0.46, 69], [3, 0.46, 67], [3.5, 0.46, 66],
+    [4, 0.92, 64], [5, 0.92, 64], [6, 0.92, 64],
+    // Bar 3-4: wish you a merry Christmas, we
+    [7, 0.92, 69], [8, 0.46, 69], [8.5, 0.46, 71], [9, 0.46, 69], [9.5, 0.46, 67],
+    [10, 0.92, 66], [11, 0.92, 62], [12, 0.92, 62],
+    // Bar 5-6: wish you a merry Christmas and a
+    [13, 0.92, 71], [14, 0.46, 71], [14.5, 0.46, 72], [15, 0.46, 71], [15.5, 0.46, 69],
+    [16, 0.92, 67], [17, 0.92, 64], [18, 0.46, 62], [18.5, 0.46, 62],
+    // Bar 7-8: happy new year! Good
+    [19, 0.92, 64], [20, 0.92, 69], [21, 0.92, 66],
+    [22, 1.85, 67], [24, 0.92, 62],
+    // Bar 9-10: tidings we bring to
+    [25, 0.92, 67], [26, 0.92, 67], [27, 0.92, 67],
+    [28, 1.85, 66], [30, 0.92, 66],
+    // Bar 11-12: you and your kin; Good
+    [31, 0.92, 67], [32, 0.92, 66], [33, 0.92, 64],
+    [34, 1.85, 62], [36, 0.92, 69],
+    // Bar 13-14: tidings for Christmas and a
+    [37, 0.92, 71], [38, 0.92, 69], [39, 0.92, 67],
+    [40, 0.92, 74], [41, 0.92, 62], [42, 0.46, 62], [42.5, 0.46, 62],
+    // Bar 15-16: happy new year!
+    [43, 0.92, 64], [44, 0.92, 69], [45, 0.92, 66],
+    [46, 1.9, 67],
+  ];
+
+  // Warm 3/4 waltz bass & music-box accompaniment [beat, dur, midi, role]
+  const CAROL_ACCOMP = [
+    // Bar 1 (G)
+    [1, 0.9, 43, 'bass'], [2, 0.4, 59, 'chime'], [3, 0.4, 62, 'chime'],
+    // Bar 2 (C)
+    [4, 0.9, 48, 'bass'], [5, 0.4, 55, 'chime'], [6, 0.4, 60, 'chime'],
+    // Bar 3 (A7)
+    [7, 0.9, 45, 'bass'], [8, 0.4, 55, 'chime'], [9, 0.4, 61, 'chime'],
+    // Bar 4 (D)
+    [10, 0.9, 50, 'bass'], [11, 0.4, 54, 'chime'], [12, 0.4, 57, 'chime'],
+    // Bar 5 (B7)
+    [13, 0.9, 47, 'bass'], [14, 0.4, 57, 'chime'], [15, 0.4, 63, 'chime'],
+    // Bar 6 (Em)
+    [16, 0.9, 52, 'bass'], [17, 0.4, 55, 'chime'], [18, 0.4, 59, 'chime'],
+    // Bar 7 (C - A7 - D7)
+    [19, 0.9, 48, 'bass'], [20, 0.9, 45, 'bass'], [21, 0.9, 50, 'bass'],
+    // Bar 8 (G)
+    [22, 1.5, 43, 'bass'], [23, 0.5, 59, 'chime'],
+    // Bar 9 (G)
+    [25, 0.9, 43, 'bass'], [26, 0.4, 55, 'chime'], [27, 0.4, 59, 'chime'],
+    // Bar 10 (D)
+    [28, 0.9, 50, 'bass'], [29, 0.4, 54, 'chime'], [30, 0.4, 57, 'chime'],
+    // Bar 11 (Em - A7)
+    [31, 0.9, 52, 'bass'], [32, 0.9, 45, 'bass'], [33, 0.4, 61, 'chime'],
+    // Bar 12 (D)
+    [34, 1.5, 50, 'bass'], [35, 0.5, 57, 'chime'],
+    // Bar 13 (G)
+    [37, 0.9, 43, 'bass'], [38, 0.4, 55, 'chime'], [39, 0.4, 59, 'chime'],
+    // Bar 14 (D7)
+    [40, 0.9, 50, 'bass'], [41, 0.4, 54, 'chime'], [42, 0.4, 60, 'chime'],
+    // Bar 15 (C - A7 - D7)
+    [43, 0.9, 48, 'bass'], [44, 0.9, 45, 'bass'], [45, 0.9, 50, 'bass'],
+    // Bar 16 (G)
+    [46, 1.8, 43, 'bass'], [47, 0.6, 59, 'chime'],
+  ];
+
+  let audioCtx = null;
+  let masterGain = null;
+  let leadFilter = null;
+  let userMuted = false; // user's explicit mute choice
+  let audioUnlocked = false;
+
+  // Audio playback state trackers
+  let lastBootSoundLine = -1;
+  let bootOkSoundPlayed = false;
+  let prevSongTotalBeat = -0.001;
+
+  function ensureAudioContext() {
+    if (audioCtx) return audioCtx;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+
+    audioCtx = new AudioCtx();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.22;
+    masterGain.connect(audioCtx.destination);
+
+    // Gentle low-pass filter warms up retro square wave so it sounds cozy, never harsh
+    leadFilter = audioCtx.createBiquadFilter();
+    leadFilter.type = 'lowpass';
+    leadFilter.frequency.value = 2150;
+    leadFilter.Q.value = 0.8;
+    leadFilter.connect(masterGain);
+
+    return audioCtx;
+  }
+
+  function updateSoundButtonUI() {
+    const isAudible = !userMuted && audioUnlocked && audioCtx && audioCtx.state === 'running';
+    soundBtn.classList.toggle('muted', !isAudible);
+    soundBtn.classList.toggle('needs-unlock', !userMuted && !isAudible);
+    soundBtn.setAttribute('aria-label', isAudible ? '소리 끄기' : '소리 켜기');
+  }
+
+  function applyMasterMuteState() {
+    if (!audioCtx || !masterGain) return;
+    const now = audioCtx.currentTime;
+    const target = userMuted || document.hidden ? 0.0 : 0.22;
+    masterGain.gain.cancelScheduledValues(now);
+    masterGain.gain.setTargetAtTime(target, now, 0.025);
+    updateSoundButtonUI();
+  }
+
+  function tryUnlockAudio() {
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'running') {
+      audioUnlocked = true;
+      applyMasterMuteState();
+      return;
+    }
+    ctx
+      .resume()
+      .then(() => {
+        audioUnlocked = ctx.state === 'running';
+        applyMasterMuteState();
+      })
+      .catch(() => {
+        updateSoundButtonUI();
+      });
+  }
+
+  function canPlaySound() {
+    return !userMuted && !document.hidden && audioCtx && audioCtx.state === 'running';
+  }
+
+  function playBeep(freq, durSec, volume, waveType = 'square', useFilter = true) {
+    if (!canPlaySound()) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = waveType;
+    osc.frequency.setValueAtTime(freq, now);
+
+    // Crisp retro chiptune envelope (no click on attack/release)
+    const attack = Math.min(0.01, durSec * 0.15);
+    const release = Math.min(0.06, durSec * 0.35);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(volume, now + attack);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * 0.55), now + Math.max(attack + 0.01, durSec - release));
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + durSec + 0.02);
+
+    osc.connect(gain);
+    gain.connect(useFilter && leadFilter ? leadFilter : masterGain);
+
+    osc.start(now);
+    osc.stop(now + durSec + 0.03);
+  }
+
+  function playBootOkChime() {
+    if (!canPlaySound()) return;
+    const now = audioCtx.currentTime;
+    const notes = [
+      { f: 659.25, offset: 0.0, dur: 0.07 },
+      { f: 987.77, offset: 0.075, dur: 0.11 },
+    ];
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(n.f, now + n.offset);
+      g.gain.setValueAtTime(0.0001, now + n.offset);
+      g.gain.linearRampToValueAtTime(0.16, now + n.offset + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + n.offset + n.dur);
+      osc.connect(g);
+      g.connect(leadFilter || masterGain);
+      osc.start(now + n.offset);
+      osc.stop(now + n.offset + n.dur + 0.02);
+    }
+  }
+
+  function resetAudioState() {
+    lastBootSoundLine = -1;
+    bootOkSoundPlayed = false;
+    prevSongTotalBeat = -0.001;
+  }
+
+  function updateAudio(elapsed) {
+    if (!canPlaySound()) return;
+
+    // 1. Boot screen retro BIOS beep & line ticks
+    if (elapsed < BOOT_HOLD_END) {
+      for (let i = lastBootSoundLine + 1; i < bootLines.length; i++) {
+        if (elapsed >= bootLines[i].at) {
+          lastBootSoundLine = i;
+          if (i === 0) {
+            playBeep(880, 0.075, 0.16, 'square', true); // Classic BIOS POST beep
+          } else {
+            const tickFreq = bootLines[i].tone === 'dim' ? 740 : 1180;
+            playBeep(tickFreq, 0.018, 0.055, 'square', true);
+          }
+        } else {
+          break;
+        }
+      }
+      const lastLine = bootLines[bootLines.length - 1];
+      if (!bootOkSoundPlayed && lastLine && lastLine.okAt !== undefined && elapsed >= lastLine.okAt) {
+        bootOkSoundPlayed = true;
+        playBootOkChime();
+      }
+      return;
+    }
+
+    // 2. Hard cut silence window
+    if (elapsed < BOOT_CUT_END) return;
+
+    // 3. Main sequence: looping "We Wish You a Merry Christmas" chiptune
+    const songT = elapsed - BOOT_CUT_END;
+    const totalBeat = songT / BEAT_SEC;
+
+    // Guard against huge frame jumps (e.g. tab switch)
+    if (totalBeat - prevSongTotalBeat > 1.5) {
+      prevSongTotalBeat = totalBeat - 0.01;
+    }
+    if (totalBeat <= prevSongTotalBeat) return;
+
+    const prevLoop = Math.floor(Math.max(0, prevSongTotalBeat) / SONG_LOOP_BEATS);
+    const currLoop = Math.floor(totalBeat / SONG_LOOP_BEATS);
+
+    for (let loop = prevLoop; loop <= currLoop; loop++) {
+      const base = loop * SONG_LOOP_BEATS;
+
+      // Lead melody (retro square beep)
+      for (let i = 0; i < CAROL_MELODY.length; i++) {
+        const ev = CAROL_MELODY[i];
+        const beatPos = base + ev[0];
+        if (beatPos > prevSongTotalBeat && beatPos <= totalBeat) {
+          playBeep(midiToFreq(ev[2]), ev[1] * BEAT_SEC, 0.24, 'square', true);
+        }
+      }
+
+      // Accompaniment (warm triangle bass + soft music-box bell chimes)
+      for (let i = 0; i < CAROL_ACCOMP.length; i++) {
+        const ev = CAROL_ACCOMP[i];
+        const beatPos = base + ev[0];
+        if (beatPos > prevSongTotalBeat && beatPos <= totalBeat) {
+          if (ev[3] === 'bass') {
+            playBeep(midiToFreq(ev[2]), ev[1] * BEAT_SEC, 0.22, 'triangle', false);
+          } else {
+            playBeep(midiToFreq(ev[2] + 12), ev[1] * BEAT_SEC, 0.065, 'sine', false);
+          }
+        }
+      }
+    }
+
+    prevSongTotalBeat = totalBeat;
+  }
+
+  // Sound toggle button
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isCurrentlyAudible = !userMuted && audioUnlocked && audioCtx && audioCtx.state === 'running';
+    if (isCurrentlyAudible) {
+      userMuted = true;
+      applyMasterMuteState();
+    } else {
+      userMuted = false;
+      tryUnlockAudio();
+    }
+  });
+
+  // Unlock WebAudio cleanly on first user tap anywhere on the canvas (mobile autoplay policy)
+  stageCanvas.addEventListener('pointerdown', () => {
+    if (!userMuted && (!audioUnlocked || (audioCtx && audioCtx.state !== 'running'))) {
+      tryUnlockAudio();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    applyMasterMuteState();
+  });
+
+  // =========================================================================
   // High-Resolution Canvas (1080x2316+ backing resolution) & Bloom Pipeline
   // =========================================================================
   const stageCanvas = document.getElementById('stage');
@@ -1238,7 +1535,9 @@
     bootLines = createBootLines(Date.now());
     prevKstText = '';
     digitFlashTimes.fill(-10);
+    resetAudioState();
     if (withSpin) {
+      if (!userMuted) tryUnlockAudio();
       replayBtn.classList.remove('spinning');
       void replayBtn.offsetWidth;
       replayBtn.classList.add('spinning');
@@ -1251,6 +1550,7 @@
 
   function render(nowMs) {
     const elapsed = (nowMs - startTimeMs) / 1000;
+    updateAudio(elapsed);
 
     // Phase 0: Retro green-on-black terminal boot screen -> hard cut to black
     if (elapsed < BOOT_CUT_END) {
@@ -1587,6 +1887,8 @@
   fontReady.then(() => {
     resize();
     buildCursiveGreetings();
+    tryUnlockAudio();
+    updateSoundButtonUI();
     resetAnimation(false);
     requestAnimationFrame(render);
   });

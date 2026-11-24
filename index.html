@@ -20,12 +20,28 @@
   <main class="viewport">
     <div class="stage-frame" id="stageFrame">
       <canvas id="stage" aria-label="ASCII Christmas Tree Animation"></canvas>
-      <button id="replayBtn" class="replay-btn" type="button" aria-label="처음부터 다시 재생" title="다시 재생">
-        <svg class="replay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-          <polyline points="21 3 21 9 15 9" />
-        </svg>
-      </button>
+      <div class="top-controls">
+        <button id="soundBtn" class="circle-btn sound-btn muted" type="button" aria-label="소리 켜기" title="소리 켜기/끄기">
+          <!-- Sound ON icon -->
+          <svg class="btn-icon icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+          <!-- Sound OFF icon -->
+          <svg class="btn-icon icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <line x1="22" y1="9" x2="16" y2="15" />
+            <line x1="16" y1="9" x2="22" y2="15" />
+          </svg>
+        </button>
+        <button id="replayBtn" class="circle-btn replay-btn" type="button" aria-label="처음부터 다시 재생" title="다시 재생">
+          <svg class="btn-icon replay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        </button>
+      </div>
     </div>
   </main>
 
