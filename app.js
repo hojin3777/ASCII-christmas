@@ -66,7 +66,7 @@
     COUNTDOWN_TOP_ROW: 125, // 7-row ASCII digits: rows 125..131
   };
 
-  const ROT_SPEED = 0.35;
+  const ROT_SPEED = 0.19;
   const WORD = 'MERRYCHRISTMAS';
   const FONT_FAMILY = "'D2Coding', 'Cascadia Code', monospace";
   const CURSIVE_FONT = "'Lobster', 'Brush Script MT', cursive";
@@ -287,26 +287,30 @@
   }
 
   // 2. Dense, Slow Grid-Integrated Snowflakes (+, *, 일본식 온점 '。', ., ·, ,)
+  // 3 depth layers:
+  //   - Far sky (z = -50): behind tree & text
+  //   - Mid foreground (z = 25): in front of tree (replaces tree glyphs)
+  //   - Near foreground (z = 38): in front of Merry/christmas & tree (replaces glyphs!)
   const SNOW_GLYPHS_FAR = ['.', '·', ',', '.', '。'];
   const SNOW_GLYPHS_MID = ['+', '*', '。', '.', '+'];
   const SNOW_GLYPHS_NEAR = ['*', '+', '。', '.', '*'];
 
   const snowflakes = [];
-  const SNOW_COUNT = 340;
+  const SNOW_COUNT = 560;
   for (let i = 0; i < SNOW_COUNT; i++) {
     const depth = rng();
-    const isForeground = depth > 0.54; // ~46% replace tree characters as they pass over
+    const snowLayer = depth > 0.64 ? 2 : depth > 0.36 ? 1 : 0;
     let glyphPool = SNOW_GLYPHS_FAR;
-    if (isForeground) glyphPool = SNOW_GLYPHS_NEAR;
-    else if (depth > 0.28) glyphPool = SNOW_GLYPHS_MID;
+    if (snowLayer === 2) glyphPool = SNOW_GLYPHS_NEAR;
+    else if (snowLayer === 1) glyphPool = SNOW_GLYPHS_MID;
 
     const ch = glyphPool[Math.floor(rng() * glyphPool.length)];
-    const vyRows = 2.6 + depth * 4.8 + rng() * 1.2; // slow, calm snowfall
+    const vyRows = 2.4 + depth * 4.6 + rng() * 1.1; // slow, serene snowfall
     snowflakes.push({
       col0: rng() * COLS,
-      row0: -rng() * (ROWS * 0.92),
+      row0: -rng() * (ROWS * 0.95),
       depth,
-      isForeground,
+      snowLayer,
       ch,
       vyRows,
       swayCols: 0.8 + rng() * 2.1,
@@ -314,12 +318,18 @@
       phase: rng() * Math.PI * 2,
       twinklePhase: rng() * Math.PI * 2,
       bornAt: rng() * 1.8,
-      targetColor: isForeground
-        ? [236, 246, 255]
-        : depth > 0.28
-          ? [186, 212, 242]
-          : [132, 160, 196],
-      baseAlpha: isForeground ? 0.76 + (depth - 0.54) * 0.52 : 0.28 + depth * 0.44,
+      targetColor:
+        snowLayer === 2
+          ? [240, 248, 255]
+          : snowLayer === 1
+            ? [196, 220, 246]
+            : [134, 162, 198],
+      baseAlpha:
+        snowLayer === 2
+          ? 0.82 + (depth - 0.64) * 0.48
+          : snowLayer === 1
+            ? 0.54 + (depth - 0.36) * 0.65
+            : 0.28 + depth * 0.45,
     });
   }
 
@@ -473,36 +483,56 @@
     }
   }
 
-  // 6. Spiral Garland / String Ornament (줄 형태 오너먼트)
+  // 6. Dual Spiral Garland / String Ornaments (주황색 1줄 + 빨간색 1줄 이중 나선)
   const garlandPoints = [];
-  const GARLAND_SAMPLES = 420;
-  const GARLAND_TURNS = 4.6;
+  const GARLAND_SAMPLES = 380;
+  const GARLAND_TURNS = 4.4;
   const GARLAND_GLYPHS = ['o', '*', '~', '°', 'o', '·'];
 
-  for (let i = 0; i < GARLAND_SAMPLES; i++) {
-    const p = i / (GARLAND_SAMPLES - 1);
-    const baseH = 0.96 - p * 0.90;
-    const drape = 0.011 * Math.sin(p * Math.PI * 16);
-    const h = clamp(baseH + drape, 0.05, 0.98);
-    const theta = p * Math.PI * 2 * GARLAND_TURNS + 0.4;
-    const r = maxTreeRadiusAtH(h) + 0.032;
+  const GARLAND_STRANDS = [
+    {
+      thetaOffset: 0.4,
+      timeOffset: 0.0,
+      bulbColor: [255, 206, 86],   // warm bright orange-gold bulbs
+      wireColor: [255, 146, 36],   // rich glowing orange garland
+    },
+    {
+      thetaOffset: 0.4 + Math.PI,  // 180° opposite phase -> clean double-helix!
+      timeOffset: 0.22,
+      bulbColor: [255, 112, 126],  // sparkling ruby-red bulbs
+      wireColor: [255, 42, 62],    // vivid festive red garland
+    },
+  ];
 
-    const appearTime =
-      TIMELINE.GARLAND_START + p * (TIMELINE.GARLAND_END - TIMELINE.GARLAND_START);
-    const isBulb = i % 4 === 0;
+  for (let sIdx = 0; sIdx < GARLAND_STRANDS.length; sIdx++) {
+    const strand = GARLAND_STRANDS[sIdx];
+    for (let i = 0; i < GARLAND_SAMPLES; i++) {
+      const p = i / (GARLAND_SAMPLES - 1);
+      const baseH = 0.96 - p * 0.90;
+      const drape = 0.011 * Math.sin(p * Math.PI * 16 + sIdx * Math.PI);
+      const h = clamp(baseH + drape, 0.05, 0.98);
+      const theta = p * Math.PI * 2 * GARLAND_TURNS + strand.thetaOffset;
+      const r = maxTreeRadiusAtH(h) + 0.032;
 
-    garlandPoints.push({
-      p,
-      h,
-      r,
-      theta,
-      rowY: LAYOUT.TREE_TOP_ROW + h * treeHeightRows,
-      ch: isBulb ? (i % 8 === 0 ? '*' : 'o') : GARLAND_GLYPHS[i % GARLAND_GLYPHS.length],
-      isBulb,
-      appearTime,
-      twinklePhase: rng() * Math.PI * 2,
-      targetColor: isBulb ? [255, 224, 108] : [255, 178, 48],
-    });
+      const appearTime =
+        TIMELINE.GARLAND_START +
+        strand.timeOffset +
+        p * (TIMELINE.GARLAND_END - TIMELINE.GARLAND_START - 0.22);
+      const isBulb = i % 4 === 0;
+
+      garlandPoints.push({
+        p,
+        h,
+        r,
+        theta,
+        rowY: LAYOUT.TREE_TOP_ROW + h * treeHeightRows,
+        ch: isBulb ? (i % 8 === 0 ? '*' : 'o') : GARLAND_GLYPHS[i % GARLAND_GLYPHS.length],
+        isBulb,
+        appearTime,
+        twinklePhase: rng() * Math.PI * 2,
+        targetColor: isBulb ? strand.bulbColor : strand.wireColor,
+      });
+    }
   }
 
   // 7. 3D Ornaments: Sphere (구), Star (별), Stocking (양말) — scaled for 106x142
@@ -995,7 +1025,9 @@
       const twinkle = 0.80 + 0.20 * Math.sin(t * 2.5 + s.twinklePhase);
       const rgb = whiteToColor(s.targetColor, age, 0.9);
       const alpha = s.baseAlpha * twinkle * bottomFade;
-      const z = s.isForeground ? 25.0 : -50.0;
+      // Near snow (z=38) passes IN FRONT OF Merry/christmas (z=34) & tree;
+      // Mid snow (z=25) passes in front of tree; far snow (z=-50) behind everything.
+      const z = s.snowLayer === 2 ? 38.0 : s.snowLayer === 1 ? 25.0 : -50.0;
 
       plotCell(col, row, s.ch, rgb[0], rgb[1], rgb[2], alpha, z);
     }
