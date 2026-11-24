@@ -76,8 +76,8 @@
   // =========================================================================
   const CAPTION_2ROW_FONT = {
     K: ['| /', '| \\'],
-    S: [",-'", '._/'],
-    T: ['___', ' | '],
+    S: [",-'", "--'"],
+    T: ['---', ' | '],
     U: ['| |', '\\_/'],
     N: ['|\\ |', '| \\|'],
     I: ['|', '|'],
@@ -263,8 +263,8 @@
 
   function buildCursiveGreetings() {
     // 1x uniform terminal cells flanking upper-left & upper-right of the tree peak
-    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 3, 14, 55, 19, -6.0, 0.34);
-    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 72, 16, 58, 17, -5.0, 0.34);
+    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 3, 14, 55, 19, -6.0, 0.36);
+    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 70, 16, 60, 17, -5.0, 0.40);
   }
 
   // =========================================================================
