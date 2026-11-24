@@ -37,6 +37,8 @@
     COUNTDOWN_CAPTION_END: 18.8,
     COUNTDOWN_DIGITS_START: 18.9,
     COUNTDOWN_DIGITS_END: 19.85,
+    DDAY_START: 20.05,
+    DDAY_END: 20.85,
   };
 
   // Tree geometry: 4 overlapping tiers (top -> bottom)
@@ -62,8 +64,9 @@
     // Integrated terminal countdown positioned cleanly BELOW accumulated snow
     BOX_LEFT_COL: 14,
     BOX_RIGHT_COL: 91,
-    CAPTION_TOP_ROW: 121, // 2-row ASCII header: rows 121..122
-    COUNTDOWN_TOP_ROW: 125, // 7-row ASCII digits: rows 125..131
+    CAPTION_TOP_ROW: 120, // 2-row ASCII header: rows 120..121
+    COUNTDOWN_TOP_ROW: 124, // 7-row ASCII digits: rows 124..130
+    DDAY_TOP_ROW: 133, // 3-row ASCII 'JINBIN ♥ D+1257': rows 133..135
   };
 
   const ROT_SPEED = 0.19;
@@ -108,6 +111,30 @@
     '8': ['.####.', '##..##', '##..##', '.####.', '##..##', '##..##', '.####.'],
     '9': ['.####.', '##..##', '##..##', '.#####', '....##', '....##', '.####.'],
     ':': ['..', '**', '**', '..', '**', '**', '..'],
+  };
+
+  // =========================================================================
+  // 3-Row ASCII Font for 'JINBIN ♥ D+XXXX' Anniversary D-Day (Same Single Grid!)
+  // =========================================================================
+  const DDAY_3ROW_FONT = {
+    J: ['--|', '  |', '\\_/'],
+    I: ['|', '|', '|'],
+    N: ['|\\ |', '| \\|', '|  |'],
+    B: ['|-.', '|-<', "|-'"],
+    D: ['|-.', '| |', "|-'"],
+    '+': [' | ', '-+-', ' | '],
+    '♥': ['.#.#.', '#####', " '#' "],
+    '0': ['.-.', '| |', "'-'"],
+    '1': ['/| ', ' | ', '---'],
+    '2': ['.-.', " -'", "'--"],
+    '3': ['.-.', ' -|', "'-'"],
+    '4': ['| |', "'-|", '  |'],
+    '5': ['.--', "'-.", "'-'"],
+    '6': ['.-.', '|-.', "'-'"],
+    '7': ['---', ' / ', '/  '],
+    '8': ['.-.', '|-|', "'-'"],
+    '9': ['.-.', "'-|", "'-'"],
+    ' ': ['  ', '  ', '  '],
   };
 
   // =========================================================================
@@ -714,8 +741,43 @@
   // KST Countdown + Integrated Terminal Insert/Overwrite Typing
   // =========================================================================
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const ANNIVERSARY_UTC_MIDNIGHT = Date.UTC(2023, 5, 17); // 2023.06.17 (inclusive Day 1)
   let prevKstText = '';
   const digitFlashTimes = new Array(16).fill(-10);
+
+  function getKstAnniversaryDays() {
+    const nowKst = new Date(Date.now() + KST_OFFSET_MS);
+    const todayKstMidnightUtc = Date.UTC(
+      nowKst.getUTCFullYear(),
+      nowKst.getUTCMonth(),
+      nowKst.getUTCDate()
+    );
+    return Math.max(1, Math.floor((todayKstMidnightUtc - ANNIVERSARY_UTC_MIDNIGHT) / 86400000) + 1);
+  }
+
+  function build3RowDDayTokens(dDayCount) {
+    const text = `JINBIN ♥ D+${dDayCount}`;
+    const cols = [];
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const glyph = DDAY_3ROW_FONT[ch];
+      if (!glyph) continue;
+      if (i > 0) {
+        cols.push({ r0: ' ', r1: ' ', r2: ' ', isHeart: false });
+      }
+      const w = glyph[0].length;
+      const isHeart = ch === '♥';
+      for (let dx = 0; dx < w; dx++) {
+        cols.push({
+          r0: glyph[0][dx],
+          r1: glyph[1][dx],
+          r2: glyph[2][dx],
+          isHeart,
+        });
+      }
+    }
+    return cols;
+  }
 
   function getKstCountdown() {
     const nowUtcMs = Date.now();
@@ -907,8 +969,70 @@
       for (let dy = 0; dy < 7; dy++) {
         plotCell(headCol, LAYOUT.COUNTDOWN_TOP_ROW + dy, '█', 255, 255, 255, 0.95, 48.0);
       }
+      return;
+    }
+
+    // --- Pass 3: 3-row ASCII 'JINBIN ♥ D+1257' typed below countdown ---
+    if (t < TIMELINE.DDAY_START) {
+      if (Math.floor(t * 6) % 2 === 0) {
+        plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 6, '█', 255, 232, 168, 0.9, 48.0);
+      }
+      return;
+    }
+
+    const dDayCount = getKstAnniversaryDays();
+    const dDayCols = build3RowDDayTokens(dDayCount);
+    const dDayWidth = dDayCols.length;
+    const dDayStartCol = Math.round((COLS - dDayWidth) / 2);
+    const dDayEndCol = dDayStartCol + dDayWidth - 1;
+
+    const dDayProg = ramp(t, TIMELINE.DDAY_START, TIMELINE.DDAY_END);
+    const dDaySweepCols = Math.floor(dDayProg * dDayWidth);
+
+    const dDayClearEnd = Math.min(boxRight, boxLeft + Math.floor(dDayProg * (boxRight - boxLeft + 1)));
+    for (let row = LAYOUT.DDAY_TOP_ROW - 1; row <= LAYOUT.DDAY_TOP_ROW + 3; row++) {
+      for (let col = boxLeft; col <= dDayClearEnd; col++) {
+        overwriteBlankCell(col, row, 45.0);
+      }
+    }
+
+    const textTarget = [255, 214, 228]; // warm soft rose-white
+    const heartTarget = [255, 52, 92];  // glowing festive crimson-pink heart
+    const heartPulse = 0.84 + 0.16 * Math.sin(t * 3.4);
+
+    for (let dx = 0; dx < dDaySweepCols; dx++) {
+      const colData = dDayCols[dx];
+      const colTime =
+        TIMELINE.DDAY_START +
+        (dx / Math.max(1, dDayWidth)) * (TIMELINE.DDAY_END - TIMELINE.DDAY_START);
+      const age = t - colTime;
+      const rgb = whiteToColorStepped(colData.isHeart ? heartTarget : textTarget, age, 0.45, 4);
+      const alpha = colData.isHeart ? heartPulse : 0.95;
+
+      const rows = [colData.r0, colData.r1, colData.r2];
+      for (let rOff = 0; rOff < 3; rOff++) {
+        const ch = rows[rOff];
+        if (!ch || ch === ' ') continue;
+        plotCell(
+          dDayStartCol + dx,
+          LAYOUT.DDAY_TOP_ROW + rOff,
+          ch,
+          rgb[0],
+          rgb[1],
+          rgb[2],
+          alpha,
+          46.0
+        );
+      }
+    }
+
+    if (dDayProg < 1.0) {
+      const headCol = dDayStartCol + dDaySweepCols;
+      for (let rOff = 0; rOff < 3; rOff++) {
+        plotCell(headCol, LAYOUT.DDAY_TOP_ROW + rOff, '█', 255, 255, 255, 0.95, 48.0);
+      }
     } else if (Math.floor(t * 2.2) % 2 === 0) {
-      plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 6, '█', 255, 232, 168, 0.9, 48.0);
+      plotCell(dDayEndCol + 2, LAYOUT.DDAY_TOP_ROW + 2, '█', 255, 214, 228, 0.88, 48.0);
     }
   }
 
