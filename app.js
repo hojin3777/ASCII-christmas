@@ -2,12 +2,13 @@
   'use strict';
 
   // =========================================================================
-  // Configuration & Timeline (1080x2316 Unified High-Res ASCII Grid)
+  // Configuration & Timeline (1080x2316 Single Unified Terminal Grid)
+  // Every single element uses the EXACT same grid (132x176) and font size!
   // =========================================================================
   const BASE_WIDTH = 1080;
   const BASE_HEIGHT = 2316;
-  const COLS = 96;
-  const ROWS = 128;
+  const COLS = 132;
+  const ROWS = 176;
 
   const TIMELINE = {
     SNOW_GROUND_START: 0.15,
@@ -29,16 +30,13 @@
     STAR_END: 15.5,
     MERRY_START: 15.7,
     MERRY_END: 16.65,
-    CHRISTMAS_START: 16.45,
-    CHRISTMAS_END: 17.65,
-    // Stepped terminal dimming (툭, 툭, 툭 discrete brightness drops)
-    DIM_START: 17.85,
-    DIM_END: 18.85,
-    // Terminal insert/overwrite typing for KST countdown
-    COUNTDOWN_CAPTION_START: 18.95,
-    COUNTDOWN_CAPTION_END: 19.55,
-    COUNTDOWN_DIGITS_START: 19.60,
-    COUNTDOWN_DIGITS_END: 20.55,
+    CHRISTMAS_START: 16.55,
+    CHRISTMAS_END: 17.75,
+    // No global dimming — countdown outputs directly in the integrated terminal below snow
+    COUNTDOWN_CAPTION_START: 18.0,
+    COUNTDOWN_CAPTION_END: 18.8,
+    COUNTDOWN_DIGITS_START: 18.9,
+    COUNTDOWN_DIGITS_END: 19.85,
   };
 
   // Tree geometry: 4 overlapping tiers (top -> bottom)
@@ -49,25 +47,23 @@
     { top: 0.66, bot: 1.00, r0: 0.36, rmax: 0.68 },
   ];
 
-  // Vertical layout in unified 96x128 ASCII grid
+  // Vertical layout in unified 132x176 single-font terminal grid
   const LAYOUT = {
-    CENTER_COL: (COLS - 1) / 2, // 47.5
-    STAR_ROW: 14.5,
-    TREE_TOP_ROW: 19.5,
-    TREE_BOT_ROW: 88.0,
-    TRUNK_TOP_ROW: 87.0,
-    TRUNK_BOT_ROW: 95.5,
-    GROUND_CENTER_ROW: 101.5,
-    GROUND_RX: 44.5, // wide, dense circular snow mound
-    GROUND_RY: 11.5,
-    TREE_SCALE_X: 54.5, // maps normalized radius 0.68 -> ~37 cols
-    // Terminal insert/overwrite countdown box (visibly overwrites lower snowbank)
-    BOX_LEFT_COL: 18,
-    BOX_RIGHT_COL: 77,
-    BOX_TOP_ROW: 106,
-    BOX_BOT_ROW: 115,
-    CAPTION_ROW: 107,
-    COUNTDOWN_TOP_ROW: 109, // rows 109..113 (5-row ASCII-art digits)
+    CENTER_COL: (COLS - 1) / 2, // 65.5
+    STAR_ROW: 16.5,
+    TREE_TOP_ROW: 23.0,
+    TREE_BOT_ROW: 113.0, // 90 rows tall
+    TRUNK_TOP_ROW: 112.0,
+    TRUNK_BOT_ROW: 123.0,
+    GROUND_CENTER_ROW: 131.0,
+    GROUND_RX: 58.0, // wide, dense circular snow mound
+    GROUND_RY: 13.5, // spans rows 117..145
+    TREE_SCALE_X: 76.0, // maps normalized radius 0.68 -> ~51.7 cols
+    // Integrated terminal countdown positioned cleanly BELOW accumulated snow
+    BOX_LEFT_COL: 24,
+    BOX_RIGHT_COL: 107,
+    CAPTION_TOP_ROW: 150, // 2-row ASCII header: rows 150..151
+    COUNTDOWN_TOP_ROW: 154, // 7-row ASCII digits: rows 154..160
   };
 
   const ROT_SPEED = 0.35;
@@ -76,20 +72,42 @@
   const CURSIVE_FONT = "'Lobster', 'Brush Script MT', cursive";
 
   // =========================================================================
-  // 5-Row ASCII-Art Digit Font for KST DD:HH:MM:SS Countdown
+  // 2-Row ASCII Font for KST · UNTIL CHRISTMAS Header (Same Single Grid!)
   // =========================================================================
-  const DIGIT_FONT = {
-    '0': ['.##.', '#..#', '#..#', '#..#', '.##.'],
-    '1': ['..#.', '.##.', '..#.', '..#.', '.###'],
-    '2': ['###.', '...#', '.##.', '#...', '####'],
-    '3': ['###.', '...#', '.##.', '...#', '###.'],
-    '4': ['#..#', '#..#', '####', '...#', '...#'],
-    '5': ['####', '#...', '###.', '...#', '###.'],
-    '6': ['.##.', '#...', '###.', '#..#', '.##.'],
-    '7': ['####', '...#', '..#.', '.#..', '.#..'],
-    '8': ['.##.', '#..#', '.##.', '#..#', '.##.'],
-    '9': ['.##.', '#..#', '.###', '...#', '.##.'],
-    ':': ['..', '**', '..', '**', '..'],
+  const CAPTION_2ROW_FONT = {
+    K: ['| /', '| \\'],
+    S: [",-'", '._/'],
+    T: ['___', ' | '],
+    U: ['| |', '\\_/'],
+    N: ['|\\ |', '| \\|'],
+    I: ['|', '|'],
+    L: ['|  ', '|__'],
+    C: [",-'", '`-.' ],
+    H: ['|_|', '| |'],
+    R: ['|-.', '| \\'],
+    M: ['|\\ /|', '| V |'],
+    A: [' /\\ ', '/--\\'],
+    E: ['|--', '|__'],
+    Y: ['\\_/', ' | '],
+    '·': ['.', "'"],
+    ' ': ['  ', '  '],
+  };
+
+  // =========================================================================
+  // 7-Row ASCII Digit Font for KST DD:HH:MM:SS (Same Single Grid!)
+  // =========================================================================
+  const DIGIT_7ROW_FONT = {
+    '0': ['.####.', '##..##', '##..##', '##..##', '##..##', '##..##', '.####.'],
+    '1': ['...##.', '..###.', '...##.', '...##.', '...##.', '...##.', '.#####'],
+    '2': ['.####.', '##..##', '....##', '..###.', '.##...', '##....', '######'],
+    '3': ['.####.', '##..##', '....##', '..###.', '....##', '##..##', '.####.'],
+    '4': ['##..##', '##..##', '##..##', '######', '....##', '....##', '....##'],
+    '5': ['######', '##....', '#####.', '....##', '....##', '##..##', '.####.'],
+    '6': ['.####.', '##....', '#####.', '##..##', '##..##', '##..##', '.####.'],
+    '7': ['######', '....##', '...##.', '..##..', '.##...', '.##...', '.##...'],
+    '8': ['.####.', '##..##', '##..##', '.####.', '##..##', '##..##', '.####.'],
+    '9': ['.####.', '##..##', '##..##', '.#####', '....##', '....##', '.####.'],
+    ':': ['..', '**', '**', '..', '**', '**', '..'],
   };
 
   // =========================================================================
@@ -129,7 +147,7 @@
     ];
   }
 
-  // Stepped terminal color transition (crisp quantized steps: 툭, 툭, 툭)
+  // Stepped terminal color transition (crisp quantized steps)
   function whiteToColorStepped(target, age, duration = 0.55, steps = 4) {
     const raw = clamp(age / duration, 0, 1);
     const p = Math.floor(raw * steps) / steps;
@@ -160,20 +178,15 @@
   }
 
   // =========================================================================
-  // Thick Cursive Brush-Script -> 2x Sub-Grid ASCII Rasterizer
-  // Renders bold tilted brush script ('Lobster') into crisp, ultra-legible
-  // thick ASCII art strokes on an exact 2x subdivision of the main grid!
+  // Thick Cursive Brush-Script -> 1x UNIFORM Terminal Grid Rasterizer
+  // Uses the EXACT same single grid & font size as the tree, snow & timer!
   // =========================================================================
-  const CURSIVE_SUB = 2;
-
-  function rasterizeCursiveToAscii(text, targetCol, targetRow, boxCols, boxRows, tiltDeg, strokeRatio) {
-    const subCols = boxCols * CURSIVE_SUB;
-    const subRows = boxRows * CURSIVE_SUB;
-    // Match 1080x2316 / (96x128) cell aspect ratio (11.25 / 18.09 ≈ 0.622)
+  function rasterizeCursiveToUniformGrid(text, targetCol, targetRow, boxCols, boxRows, tiltDeg, threshold) {
+    // Match 1080x2316 / (132x176) cell aspect ratio (8.18 / 13.16 ≈ 0.622)
     const sampleCellW = 8;
     const sampleCellH = 13;
-    const cw = subCols * sampleCellW;
-    const ch = subRows * sampleCellH;
+    const cw = boxCols * sampleCellW;
+    const ch = boxRows * sampleCellH;
 
     const off = document.createElement('canvas');
     off.width = cw;
@@ -183,7 +196,7 @@
     let fontSize = Math.round(ch * 0.72);
     ctx.font = `400 ${fontSize}px ${CURSIVE_FONT}`;
     const measuredW = ctx.measureText(text).width;
-    const maxAllowedW = cw * 0.92;
+    const maxAllowedW = cw * 0.94;
     if (measuredW > maxAllowedW) {
       fontSize = Math.floor(fontSize * (maxAllowedW / measuredW));
     }
@@ -195,25 +208,17 @@
     ctx.font = `400 ${fontSize}px ${CURSIVE_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-
-    if (strokeRatio > 0) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1.5, fontSize * strokeRatio);
-      ctx.strokeText(text, 0, 0);
-    }
     ctx.fillStyle = '#ffffff';
     ctx.fillText(text, 0, 0);
     ctx.restore();
 
     const img = ctx.getImageData(0, 0, cw, ch).data;
     const cells = [];
-    let minDx = subCols;
+    let minDx = boxCols;
     let maxDx = 0;
 
-    for (let dy = 0; dy < subRows; dy++) {
-      for (let dx = 0; dx < subCols; dx++) {
+    for (let dy = 0; dy < boxRows; dy++) {
+      for (let dx = 0; dx < boxCols; dx++) {
         let sumAlpha = 0;
         const x0 = dx * sampleCellW;
         const y0 = dy * sampleCellH;
@@ -225,22 +230,19 @@
           }
         }
         const cov = sumAlpha / (sampleCellW * sampleCellH * 255);
-        // Crisp threshold preserves open cursive loops & letter gaps cleanly
-        if (cov < 0.36) continue;
+        if (cov < threshold) continue;
 
         let glyph;
-        if (cov > 0.82) glyph = (dx + dy) % 3 === 0 ? '@' : '#';
-        else if (cov > 0.58) glyph = '#';
+        if (cov > 0.80) glyph = (dx + dy) % 3 === 0 ? '@' : '#';
+        else if (cov > 0.56) glyph = '#';
         else glyph = '%';
 
         if (dx < minDx) minDx = dx;
         if (dx > maxDx) maxDx = dx;
 
         cells.push({
-          subCol: targetCol * CURSIVE_SUB + dx,
-          subRow: targetRow * CURSIVE_SUB + dy,
-          mainCol: targetCol + Math.floor(dx / CURSIVE_SUB),
-          mainRow: targetRow + Math.floor(dy / CURSIVE_SUB),
+          col: targetCol + dx,
+          row: targetRow + dy,
           dx,
           cov,
           ch: glyph,
@@ -260,9 +262,9 @@
   let christmasAsciiCells = [];
 
   function buildCursiveGreetings() {
-    // Upper-left 'Merry' & Upper-right 'christmas': thick tilted brush cursive in crisp ASCII
-    merryAsciiCells = rasterizeCursiveToAscii('Merry', 2, 11, 40, 15, -6.5, 0.022);
-    christmasAsciiCells = rasterizeCursiveToAscii('christmas', 51, 13, 44, 14, -5.5, 0.014);
+    // 1x uniform terminal cells flanking upper-left & upper-right of the tree peak
+    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 3, 14, 55, 19, -6.0, 0.34);
+    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 72, 16, 58, 17, -5.0, 0.34);
   }
 
   // =========================================================================
@@ -272,10 +274,10 @@
 
   // 1. Background Ambient Stars
   const bgStars = [];
-  for (let i = 0; i < 95; i++) {
+  for (let i = 0; i < 120; i++) {
     bgStars.push({
       col: Math.floor(rng() * COLS),
-      row: Math.floor(rng() * (ROWS * 0.78)),
+      row: Math.floor(rng() * (ROWS * 0.82)),
       ch: rng() < 0.72 ? '.' : rng() < 0.88 ? '·' : '+',
       phase: rng() * Math.PI * 2,
       speed: 1.0 + rng() * 1.6,
@@ -284,12 +286,13 @@
   }
 
   // 2. Dense, Slow Grid-Integrated Snowflakes (+, *, 일본식 온점 '。', ., ·, ,)
+  // Foreground snow replaces tree characters cell-for-cell!
   const SNOW_GLYPHS_FAR = ['.', '·', ',', '.', '。'];
   const SNOW_GLYPHS_MID = ['+', '*', '。', '.', '+'];
   const SNOW_GLYPHS_NEAR = ['*', '+', '。', '.', '*'];
 
   const snowflakes = [];
-  const SNOW_COUNT = 320;
+  const SNOW_COUNT = 420;
   for (let i = 0; i < SNOW_COUNT; i++) {
     const depth = rng();
     const isForeground = depth > 0.54; // ~46% replace tree characters as they pass over
@@ -298,7 +301,7 @@
     else if (depth > 0.28) glyphPool = SNOW_GLYPHS_MID;
 
     const ch = glyphPool[Math.floor(rng() * glyphPool.length)];
-    const vyRows = 2.4 + depth * 4.5 + rng() * 1.1; // slow, calm drift
+    const vyRows = 3.2 + depth * 5.8 + rng() * 1.4; // slow, serene snowfall
     snowflakes.push({
       col0: rng() * COLS,
       row0: -rng() * (ROWS * 0.92),
@@ -306,7 +309,7 @@
       isForeground,
       ch,
       vyRows,
-      swayCols: 0.7 + rng() * 2.0,
+      swayCols: 1.0 + rng() * 2.6,
       swayFreq: 0.35 + rng() * 0.65,
       phase: rng() * Math.PI * 2,
       twinklePhase: rng() * Math.PI * 2,
@@ -316,7 +319,7 @@
         : depth > 0.28
           ? [186, 212, 242]
           : [132, 160, 196],
-      baseAlpha: isForeground ? 0.74 + (depth - 0.54) * 0.56 : 0.28 + depth * 0.44,
+      baseAlpha: isForeground ? 0.76 + (depth - 0.54) * 0.52 : 0.28 + depth * 0.44,
     });
   }
 
@@ -338,11 +341,11 @@
       const contourJitter = 1 + 0.05 * Math.sin(angle * 5 + 0.7) + 0.03 * Math.cos(angle * 9);
       const rad = Math.hypot(nx, ny) / contourJitter;
 
-      if (rad > 1.06) continue;
+      if (rad > 1.05) continue;
 
       let keepProb = 0.95;
       if (rad > 0.76) {
-        keepProb = clamp(0.95 - ((rad - 0.76) / 0.30) * 0.78, 0.14, 0.95);
+        keepProb = clamp(0.95 - ((rad - 0.76) / 0.29) * 0.78, 0.14, 0.95);
       }
       if (rng() > keepProb) continue;
 
@@ -379,11 +382,11 @@
   // 4. Tree Trunk (밑둥) — 3D rotating cylinder
   const trunkPoints = [];
   const TRUNK_GLYPHS = ['|', '#', 'H', 'I', 'M', ':'];
-  const TRUNK_ROWS = 19;
+  const TRUNK_ROWS = 24;
   for (let i = 0; i < TRUNK_ROWS; i++) {
     const v = i / (TRUNK_ROWS - 1);
     const rowY = LAYOUT.TRUNK_BOT_ROW - v * (LAYOUT.TRUNK_BOT_ROW - LAYOUT.TRUNK_TOP_ROW);
-    const numAround = 30;
+    const numAround = 38;
     for (let j = 0; j < numAround; j++) {
       const theta = (j / numAround) * Math.PI * 2 + rng() * 0.14;
       const r = 0.092 + (1 - v) * 0.024 + (rng() - 0.5) * 0.008;
@@ -403,7 +406,7 @@
     }
   }
 
-  // 5. Tree Foliage Points (4 overlapping 3D tiers)
+  // 5. Tree Foliage Points (4 overlapping 3D tiers, ultra-dense)
   const treePoints = [];
   const treeHeightRows = LAYOUT.TREE_BOT_ROW - LAYOUT.TREE_TOP_ROW;
 
@@ -411,13 +414,13 @@
     const tier = TIERS[k];
     const [tStart, tEnd] = TIMELINE.TIER_WINDOWS[k];
     const spanH = tier.bot - tier.top;
-    const rings = Math.round(spanH * treeHeightRows * 1.95);
+    const rings = Math.round(spanH * treeHeightRows * 1.85);
 
     for (let ri = 0; ri <= rings; ri++) {
       const u = ri / rings;
       const h = tier.top + u * spanH;
       const baseR = tierRadius(k, u);
-      const countAround = Math.max(10, Math.round(baseR * 195));
+      const countAround = Math.max(12, Math.round(baseR * 260));
 
       for (let j = 0; j < countAround; j++) {
         const theta =
@@ -425,7 +428,7 @@
           (rng() - 0.5) * (0.5 / Math.max(1, countAround)) * Math.PI * 2;
         const boughWave = 1 + 0.048 * Math.sin(theta * 7 + k * 1.9 + u * 2.5);
         const radialLayer = rng() < 0.78 ? 1.0 : 0.72 + rng() * 0.25;
-        const r = Math.max(0.012, baseR * boughWave * radialLayer + (rng() - 0.5) * 0.015);
+        const r = Math.max(0.012, baseR * boughWave * radialLayer + (rng() - 0.5) * 0.014);
 
         const growthProgress = 1 - u;
         const appearTime =
@@ -472,7 +475,7 @@
 
   // 6. Spiral Garland / String Ornament (줄 형태 오너먼트)
   const garlandPoints = [];
-  const GARLAND_SAMPLES = 390;
+  const GARLAND_SAMPLES = 520;
   const GARLAND_TURNS = 4.6;
   const GARLAND_GLYPHS = ['o', '*', '~', '°', 'o', '·'];
 
@@ -482,7 +485,7 @@
     const drape = 0.011 * Math.sin(p * Math.PI * 16);
     const h = clamp(baseH + drape, 0.05, 0.98);
     const theta = p * Math.PI * 2 * GARLAND_TURNS + 0.4;
-    const r = maxTreeRadiusAtH(h) + 0.034;
+    const r = maxTreeRadiusAtH(h) + 0.032;
 
     const appearTime =
       TIMELINE.GARLAND_START + p * (TIMELINE.GARLAND_END - TIMELINE.GARLAND_START);
@@ -502,46 +505,73 @@
     });
   }
 
-  // 7. 3D Ornaments: Sphere (구), Star (별), Stocking (양말)
+  // 7. 3D Ornaments: Sphere (구), Star (별), Stocking (양말) — scaled for 132x176 uniform grid
   const ORNAMENT_SPRITES = {
     sphere: [
-      { dx: -1, dy: -1, ch: ',', role: 'body' },
-      { dx: 0, dy: -1, ch: '-', role: 'body' },
-      { dx: 1, dy: -1, ch: ',', role: 'body' },
+      { dx: -1, dy: -2, ch: ',', role: 'body' },
+      { dx: 0, dy: -2, ch: '-', role: 'body' },
+      { dx: 1, dy: -2, ch: '-', role: 'body' },
+      { dx: 2, dy: -2, ch: ',', role: 'body' },
+      { dx: -2, dy: -1, ch: '(', role: 'body' },
+      { dx: -1, dy: -1, ch: '*', role: 'shine' },
+      { dx: 0, dy: -1, ch: '@', role: 'body' },
+      { dx: 1, dy: -1, ch: '@', role: 'body' },
+      { dx: 2, dy: -1, ch: '@', role: 'body' },
+      { dx: 3, dy: -1, ch: ')', role: 'body' },
       { dx: -2, dy: 0, ch: '(', role: 'body' },
-      { dx: -1, dy: 0, ch: '*', role: 'shine' },
+      { dx: -1, dy: 0, ch: '@', role: 'body' },
       { dx: 0, dy: 0, ch: '@', role: 'body' },
       { dx: 1, dy: 0, ch: '@', role: 'body' },
-      { dx: 2, dy: 0, ch: ')', role: 'body' },
+      { dx: 2, dy: 0, ch: '@', role: 'body' },
+      { dx: 3, dy: 0, ch: ')', role: 'body' },
       { dx: -1, dy: 1, ch: '`', role: 'body' },
       { dx: 0, dy: 1, ch: '-', role: 'body' },
-      { dx: 1, dy: 1, ch: "'", role: 'body' },
+      { dx: 1, dy: 1, ch: '-', role: 'body' },
+      { dx: 2, dy: 1, ch: "'", role: 'body' },
     ],
     star: [
-      { dx: 0, dy: -1, ch: '*', role: 'body' },
-      { dx: -2, dy: 0, ch: '-', role: 'body' },
+      { dx: 0, dy: -2, ch: '*', role: 'body' },
+      { dx: -1, dy: -1, ch: '/', role: 'body' },
+      { dx: 0, dy: -1, ch: '*', role: 'shine' },
+      { dx: 1, dy: -1, ch: '\\', role: 'body' },
+      { dx: -3, dy: 0, ch: '-', role: 'body' },
+      { dx: -2, dy: 0, ch: '*', role: 'body' },
       { dx: -1, dy: 0, ch: '*', role: 'body' },
       { dx: 0, dy: 0, ch: '+', role: 'shine' },
       { dx: 1, dy: 0, ch: '*', role: 'body' },
-      { dx: 2, dy: 0, ch: '-', role: 'body' },
+      { dx: 2, dy: 0, ch: '*', role: 'body' },
+      { dx: 3, dy: 0, ch: '-', role: 'body' },
       { dx: -1, dy: 1, ch: '/', role: 'body' },
+      { dx: 0, dy: 1, ch: '*', role: 'body' },
       { dx: 1, dy: 1, ch: '\\', role: 'body' },
+      { dx: -2, dy: 2, ch: '/', role: 'body' },
+      { dx: 2, dy: 2, ch: '\\', role: 'body' },
     ],
     stocking: [
       { dx: 0, dy: -2, ch: '=', role: 'cuff' },
       { dx: 1, dy: -2, ch: '=', role: 'cuff' },
       { dx: 2, dy: -2, ch: '=', role: 'cuff' },
+      { dx: 3, dy: -2, ch: '=', role: 'cuff' },
       { dx: 0, dy: -1, ch: '|', role: 'body' },
       { dx: 1, dy: -1, ch: '#', role: 'body' },
-      { dx: 2, dy: -1, ch: '|', role: 'body' },
+      { dx: 2, dy: -1, ch: '#', role: 'body' },
+      { dx: 3, dy: -1, ch: '|', role: 'body' },
       { dx: 0, dy: 0, ch: '|', role: 'body' },
       { dx: 1, dy: 0, ch: '#', role: 'body' },
-      { dx: 2, dy: 0, ch: '|', role: 'body' },
+      { dx: 2, dy: 0, ch: '#', role: 'body' },
+      { dx: 3, dy: 0, ch: '|', role: 'body' },
       { dx: -2, dy: 1, ch: '(', role: 'cuff' },
       { dx: -1, dy: 1, ch: '#', role: 'body' },
       { dx: 0, dy: 1, ch: '#', role: 'body' },
       { dx: 1, dy: 1, ch: '#', role: 'body' },
       { dx: 2, dy: 1, ch: '#', role: 'body' },
+      { dx: 3, dy: 1, ch: '#', role: 'body' },
+      { dx: -2, dy: 2, ch: '(', role: 'cuff' },
+      { dx: -1, dy: 2, ch: '#', role: 'body' },
+      { dx: 0, dy: 2, ch: '#', role: 'body' },
+      { dx: 1, dy: 2, ch: '#', role: 'body' },
+      { dx: 2, dy: 2, ch: '#', role: 'body' },
+      { dx: 3, dy: 2, ch: ')', role: 'body' },
     ],
   };
 
@@ -560,7 +590,7 @@
     const frac = i / (ORN_COUNT - 1);
     const h = 0.91 - frac * 0.70;
     const theta = i * GOLDEN_ANGLE + 0.55;
-    const r = maxTreeRadiusAtH(h) + 0.052;
+    const r = maxTreeRadiusAtH(h) + 0.048;
     const type = ORN_TYPES[i % ORN_TYPES.length];
 
     let bodyColor;
@@ -589,37 +619,45 @@
     });
   }
 
-  // 8. Top Star (맨 위 별 + 빛줄기)
+  // 8. Top Star (맨 위 별 + 빛줄기 — scaled cleanly for 132x176)
   const topStarCells = [
     { dx: 0, dy: 0, ch: '@', ring: 0, color: [255, 246, 182] },
-    { dx: -1, dy: 0, ch: '*', ring: 1, color: [255, 224, 108] },
-    { dx: 1, dy: 0, ch: '*', ring: 1, color: [255, 224, 108] },
-    { dx: 0, dy: -1, ch: '*', ring: 1, color: [255, 224, 108] },
-    { dx: 0, dy: 1, ch: '*', ring: 1, color: [255, 224, 108] },
-    { dx: -2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
-    { dx: 2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
-    { dx: 0, dy: -2, ch: '|', ring: 2, color: [255, 206, 74] },
-    { dx: 0, dy: 2, ch: '|', ring: 2, color: [255, 206, 74] },
-    { dx: -1, dy: -1, ch: '\\', ring: 2, color: [255, 212, 86] },
-    { dx: 1, dy: -1, ch: '/', ring: 2, color: [255, 212, 86] },
-    { dx: -1, dy: 1, ch: '/', ring: 2, color: [255, 212, 86] },
-    { dx: 1, dy: 1, ch: '\\', ring: 2, color: [255, 212, 86] },
-    { dx: -3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
-    { dx: 3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
-    { dx: -4, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
-    { dx: 4, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
-    { dx: -5, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 5, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 0, dy: -3, ch: '|', ring: 3, color: [255, 184, 58] },
-    { dx: 0, dy: -4, ch: '.', ring: 3, color: [242, 168, 54] },
-    { dx: -2, dy: -2, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 2, dy: -2, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: -2, dy: 2, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 2, dy: 2, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: -1, dy: 0, ch: '*', ring: 1, color: [255, 228, 118] },
+    { dx: 1, dy: 0, ch: '*', ring: 1, color: [255, 228, 118] },
+    { dx: 0, dy: -1, ch: '*', ring: 1, color: [255, 228, 118] },
+    { dx: 0, dy: 1, ch: '*', ring: 1, color: [255, 228, 118] },
+    { dx: -2, dy: 0, ch: '*', ring: 2, color: [255, 212, 82] },
+    { dx: 2, dy: 0, ch: '*', ring: 2, color: [255, 212, 82] },
+    { dx: -3, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
+    { dx: 3, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
+    { dx: 0, dy: -2, ch: '|', ring: 2, color: [255, 212, 82] },
+    { dx: 0, dy: 2, ch: '|', ring: 2, color: [255, 212, 82] },
+    { dx: 0, dy: -3, ch: '|', ring: 2, color: [255, 204, 72] },
+    { dx: 0, dy: 3, ch: '|', ring: 2, color: [255, 204, 72] },
+    { dx: -1, dy: -1, ch: '\\', ring: 2, color: [255, 214, 88] },
+    { dx: 1, dy: -1, ch: '/', ring: 2, color: [255, 214, 88] },
+    { dx: -1, dy: 1, ch: '/', ring: 2, color: [255, 214, 88] },
+    { dx: 1, dy: 1, ch: '\\', ring: 2, color: [255, 214, 88] },
+    { dx: -2, dy: -2, ch: '\\', ring: 3, color: [255, 188, 62] },
+    { dx: 2, dy: -2, ch: '/', ring: 3, color: [255, 188, 62] },
+    { dx: -2, dy: 2, ch: '/', ring: 3, color: [255, 188, 62] },
+    { dx: 2, dy: 2, ch: '\\', ring: 3, color: [255, 188, 62] },
+    { dx: -4, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
+    { dx: 4, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
+    { dx: -5, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
+    { dx: 5, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
+    { dx: -6, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 6, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 0, dy: -4, ch: '|', ring: 3, color: [255, 184, 58] },
+    { dx: 0, dy: -5, ch: '.', ring: 3, color: [242, 168, 54] },
+    { dx: -3, dy: -3, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 3, dy: -3, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: -3, dy: 3, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 3, dy: 3, ch: '·', ring: 3, color: [242, 168, 54] },
   ];
 
   // =========================================================================
-  // Unified Z-Buffered ASCII Grid Framebuffer (supports terminal overwrite!)
+  // Single Unified Z-Buffered Terminal Grid Framebuffer
   // =========================================================================
   const GRID_SIZE = COLS * ROWS;
   const gridChar = new Array(GRID_SIZE);
@@ -650,7 +688,7 @@
     }
   }
 
-  // Overwrite/blank a cell in terminal insert mode (erases snow/ground beneath!)
+  // Terminal overwrite blank cell (clears any snow/stars behind typed regions)
   function overwriteBlankCell(col, row, z) {
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
     const idx = row * COLS + col;
@@ -661,30 +699,11 @@
     }
   }
 
-  // Clear underlying main-grid snow cells under revealed thick cursive strokes
-  function maskCursiveUnderlay(cells, startTime, endTime, t) {
-    if (t < startTime || cells.length === 0) return;
-    const span = Math.max(0.01, endTime - startTime);
-    for (let i = 0; i < cells.length; i++) {
-      const c = cells[i];
-      if (t >= startTime + c.progressX * (span * 0.78)) {
-        overwriteBlankCell(c.mainCol, c.mainRow, 34.0);
-      }
-    }
-  }
-
-  // Draw crisp 2x sub-grid thick cursive ASCII art onto sharpCanvas (unified bloom!)
-  function drawCursiveGreetingSubgrid(ctx, cells, startTime, endTime, t, dimFactor) {
+  // Plot 1x uniform-grid thick cursive greeting (same single font as entire terminal!)
+  function plotCursiveGreeting(cells, startTime, endTime, t) {
     if (t < startTime || cells.length === 0) return;
     const span = Math.max(0.01, endTime - startTime);
     const targetRed = [255, 38, 60];
-    const subCellW = cellW / CURSIVE_SUB;
-    const subCellH = cellH / CURSIVE_SUB;
-    const subFontPx = Math.max(6, gridFontPx / CURSIVE_SUB * 1.12);
-
-    ctx.font = `700 ${subFontPx.toFixed(1)}px ${FONT_FAMILY}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
 
     for (let i = 0; i < cells.length; i++) {
       const c = cells[i];
@@ -694,17 +713,12 @@
 
       const rgb = whiteToColorStepped(targetRed, age, 0.72, 5);
       const lum = 0.80 + 0.20 * c.cov;
-      const alpha = lum * dimFactor;
-      const px = (c.subCol + 0.5) * subCellW;
-      const py = (c.subRow + 0.5) * subCellH;
-
-      ctx.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha.toFixed(3)})`;
-      ctx.fillText(c.ch, px, py);
+      plotCell(c.col, c.row, c.ch, rgb[0], rgb[1], rgb[2], lum, 34.0);
     }
   }
 
   // =========================================================================
-  // KST Countdown + Terminal Insert/Overwrite Mode Engine
+  // KST Countdown + Integrated Terminal Insert/Overwrite Typing
   // =========================================================================
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   let prevKstText = '';
@@ -740,13 +754,31 @@
     };
   }
 
+  function build2RowCaptionLines(text) {
+    let row0 = '';
+    let row1 = '';
+    for (let i = 0; i < text.length; i++) {
+      const g = CAPTION_2ROW_FONT[text[i]];
+      if (!g) continue;
+      if (i > 0) {
+        row0 += ' ';
+        row1 += ' ';
+      }
+      row0 += g[0];
+      row1 += g[1];
+    }
+    return [row0, row1];
+  }
+
+  const CAPTION_LINES_UNTIL = build2RowCaptionLines('KST · UNTIL CHRISTMAS');
+  const CAPTION_LINES_MERRY = build2RowCaptionLines('KST · MERRY CHRISTMAS');
+
   function plotTerminalInsertCountdown(t) {
     if (t < TIMELINE.COUNTDOWN_CAPTION_START) return;
 
     const kst = getKstCountdown();
     const str = kst.text;
 
-    // Detect per-digit ticks so changed digits flash white briefly like a tty redraw
     if (prevKstText && prevKstText.length === str.length) {
       for (let i = 0; i < str.length; i++) {
         if (str[i] !== prevKstText[i]) {
@@ -756,73 +788,73 @@
     }
     prevKstText = str;
 
-    const caption = kst.isChristmasDay
-      ? '> KST :: MERRY CHRISTMAS'
-      : '> KST :: UNTIL CHRISTMAS';
+    const capLines = kst.isChristmasDay ? CAPTION_LINES_MERRY : CAPTION_LINES_UNTIL;
+    const capWidth = capLines[0].length;
+    const capStartCol = Math.round((COLS - capWidth) / 2);
 
-    // --- Pass 1: Caption row typed in terminal insert/overwrite mode ---
-    const capProg = ramp(t, TIMELINE.COUNTDOWN_CAPTION_START, TIMELINE.COUNTDOWN_CAPTION_END);
-    const capStartCol = Math.round((COLS - caption.length) / 2);
-    const capTypedCount = Math.floor(capProg * caption.length);
-
-    // Clear padding rows directly around caption as cursor sweeps across
     const boxLeft = LAYOUT.BOX_LEFT_COL;
     const boxRight = LAYOUT.BOX_RIGHT_COL;
-    const clearColLimitCap = Math.min(boxRight, boxLeft + Math.floor(capProg * (boxRight - boxLeft + 1)));
 
-    for (let col = boxLeft; col <= clearColLimitCap; col++) {
-      overwriteBlankCell(col, LAYOUT.BOX_TOP_ROW, 45.0);
-      overwriteBlankCell(col, LAYOUT.CAPTION_ROW, 45.0);
-      overwriteBlankCell(col, LAYOUT.CAPTION_ROW + 1, 45.0);
+    // --- Pass 1: 2-row ASCII 'KST · UNTIL CHRISTMAS' typed in terminal insert mode ---
+    const capProg = ramp(t, TIMELINE.COUNTDOWN_CAPTION_START, TIMELINE.COUNTDOWN_CAPTION_END);
+    const capSweepCols = Math.floor(capProg * capWidth);
+    const capEndColLimit = capStartCol + capSweepCols;
+
+    // Overwrite underlying snow/sky cleanly across the 2-row header band
+    const capClearEnd = Math.min(boxRight, boxLeft + Math.floor(capProg * (boxRight - boxLeft + 1)));
+    for (let col = boxLeft; col <= capClearEnd; col++) {
+      overwriteBlankCell(col, LAYOUT.CAPTION_TOP_ROW - 1, 45.0);
+      overwriteBlankCell(col, LAYOUT.CAPTION_TOP_ROW, 45.0);
+      overwriteBlankCell(col, LAYOUT.CAPTION_TOP_ROW + 1, 45.0);
+      overwriteBlankCell(col, LAYOUT.CAPTION_TOP_ROW + 2, 45.0);
     }
 
-    const capTarget = [196, 214, 240];
-    for (let i = 0; i < capTypedCount; i++) {
-      const ch = caption[i];
-      if (ch === ' ') continue;
-      const charTime =
+    const capTarget = [198, 218, 246];
+    for (let dx = 0; dx < capSweepCols; dx++) {
+      const colTime =
         TIMELINE.COUNTDOWN_CAPTION_START +
-        (i / Math.max(1, caption.length)) *
+        (dx / Math.max(1, capWidth)) *
           (TIMELINE.COUNTDOWN_CAPTION_END - TIMELINE.COUNTDOWN_CAPTION_START);
-      const rgb = whiteToColorStepped(capTarget, t - charTime, 0.42, 4);
-      plotCell(capStartCol + i, LAYOUT.CAPTION_ROW, ch, rgb[0], rgb[1], rgb[2], 0.92, 46.0);
+      const rgb = whiteToColorStepped(capTarget, t - colTime, 0.45, 4);
+
+      for (let rOff = 0; rOff < 2; rOff++) {
+        const ch = capLines[rOff][dx];
+        if (!ch || ch === ' ') continue;
+        plotCell(capStartCol + dx, LAYOUT.CAPTION_TOP_ROW + rOff, ch, rgb[0], rgb[1], rgb[2], 0.94, 46.0);
+      }
     }
 
-    // Active white block cursor while typing caption
+    // Active 2-row terminal block cursor while typing the header
     if (capProg < 1.0) {
-      const cursorCol = capStartCol + capTypedCount;
-      plotCell(cursorCol, LAYOUT.CAPTION_ROW, '█', 255, 255, 255, 1.0, 48.0);
+      plotCell(capEndColLimit, LAYOUT.CAPTION_TOP_ROW, '█', 255, 255, 255, 1.0, 48.0);
+      plotCell(capEndColLimit, LAYOUT.CAPTION_TOP_ROW + 1, '█', 255, 255, 255, 1.0, 48.0);
       return;
     }
 
-    // --- Pass 2: 5-row ASCII DD:HH:MM:SS typed in terminal insert/overwrite mode ---
+    // --- Pass 2: 7-row ASCII DD:HH:MM:SS typed in terminal insert mode ---
     if (t < TIMELINE.COUNTDOWN_DIGITS_START) {
-      // Brief terminal cursor blink on next line before digits start typing
-      const cursorOn = Math.floor(t * 5) % 2 === 0;
-      if (cursorOn) {
-        plotCell(boxLeft + 4, LAYOUT.COUNTDOWN_TOP_ROW, '█', 255, 255, 255, 0.95, 48.0);
+      if (Math.floor(t * 6) % 2 === 0) {
+        plotCell(capStartCol, LAYOUT.COUNTDOWN_TOP_ROW, '█', 255, 255, 255, 0.95, 48.0);
       }
       return;
     }
 
     let totalW = 0;
     for (let i = 0; i < str.length; i++) {
-      const g = DIGIT_FONT[str[i]];
+      const g = DIGIT_7ROW_FONT[str[i]];
       if (!g) continue;
       totalW += g[0].length;
-      if (i < str.length - 1) totalW += 1;
+      if (i < str.length - 1) totalW += 2;
     }
     const digitStartCol = Math.round((COLS - totalW) / 2);
     const digitEndCol = digitStartCol + totalW - 1;
 
     const digProg = ramp(t, TIMELINE.COUNTDOWN_DIGITS_START, TIMELINE.COUNTDOWN_DIGITS_END);
-    // Discrete stepped sweep column across the entire 5-row countdown region
     const totalBoxCols = boxRight - boxLeft + 1;
     const sweptCols = Math.floor(digProg * totalBoxCols);
     const overwriteLimitCol = Math.min(boxRight, boxLeft + sweptCols);
 
-    // Overwrite underlying snow/ground cells with dark terminal space up to the typing head
-    for (let row = LAYOUT.COUNTDOWN_TOP_ROW; row <= LAYOUT.BOX_BOT_ROW; row++) {
+    for (let row = LAYOUT.COUNTDOWN_TOP_ROW - 1; row <= LAYOUT.COUNTDOWN_TOP_ROW + 7; row++) {
       for (let col = boxLeft; col <= overwriteLimitCol; col++) {
         overwriteBlankCell(col, row, 45.0);
       }
@@ -830,13 +862,12 @@
 
     const digitTarget = [255, 228, 146];
     const colonTarget = [255, 76, 92];
-    // Stepped 1Hz blink on colons (crisp terminal on/off feel rather than soft sine wave)
-    const colonBright = Math.floor(t * 2) % 2 === 0 ? 1.0 : 0.45;
+    const colonBright = Math.floor(t * 2) % 2 === 0 ? 1.0 : 0.42;
 
     let curCol = digitStartCol;
     for (let i = 0; i < str.length; i++) {
       const chKey = str[i];
-      const glyph = DIGIT_FONT[chKey];
+      const glyph = DIGIT_7ROW_FONT[chKey];
       if (!glyph) continue;
       const w = glyph[0].length;
       const isColon = chKey === ':';
@@ -849,18 +880,16 @@
           const sym = line[dx];
           if (sym === '.') continue;
 
-          // Compute exact stepped birth time of this column during overwrite sweep
           const colFrac = clamp((cellCol - boxLeft) / totalBoxCols, 0, 1);
           const colBornTime =
             TIMELINE.COUNTDOWN_DIGITS_START +
             colFrac * (TIMELINE.COUNTDOWN_DIGITS_END - TIMELINE.COUNTDOWN_DIGITS_START);
           const age = t - colBornTime;
 
-          // Flash white briefly whenever this live digit ticks
           const tickAge = t - digitFlashTimes[i];
           const isTickFlash = !isColon && digProg >= 1.0 && tickAge >= 0 && tickAge < 0.16;
 
-          const baseRgb = isTickFlash
+          const rgb = isTickFlash
             ? [255, 255, 255]
             : whiteToColorStepped(isColon ? colonTarget : digitTarget, age, 0.48, 4);
           const alpha = isColon ? colonBright : 1.0;
@@ -870,29 +899,26 @@
             cellCol,
             LAYOUT.COUNTDOWN_TOP_ROW + dy,
             drawCh,
-            baseRgb[0],
-            baseRgb[1],
-            baseRgb[2],
+            rgb[0],
+            rgb[1],
+            rgb[2],
             alpha,
             46.0
           );
         }
       }
 
-      curCol += w + 1;
+      curCol += w + 2;
     }
 
-    // Active terminal insert/overwrite block cursor bar while typing across the 5 rows
+    // Active terminal insert-mode block cursor bar while typing
     if (digProg < 1.0) {
       const headCol = Math.min(boxRight, overwriteLimitCol + 1);
-      for (let dy = 0; dy < 5; dy++) {
+      for (let dy = 0; dy < 7; dy++) {
         plotCell(headCol, LAYOUT.COUNTDOWN_TOP_ROW + dy, '█', 255, 255, 255, 0.95, 48.0);
       }
-    } else {
-      // Classic steady blinking terminal block cursor at end of countdown
-      if (Math.floor(t * 2.2) % 2 === 0) {
-        plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 4, '█', 255, 232, 168, 0.88, 48.0);
-      }
+    } else if (Math.floor(t * 2.2) % 2 === 0) {
+      plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 6, '█', 255, 232, 168, 0.9, 48.0);
     }
   }
 
@@ -953,7 +979,7 @@
   resize();
 
   // =========================================================================
-  // Main Frame Simulation & Render (100% Unified ASCII Grid)
+  // Main Frame Simulation & Render (100% Single Unified Terminal Grid)
   // =========================================================================
   let startTimeMs = performance.now();
   let spinTimer = null;
@@ -975,29 +1001,21 @@
 
   function render(nowMs) {
     const t = (nowMs - startTimeMs) / 1000;
-
-    // Stepped discrete terminal dimming (툭, 툭, 툭 — 4 crisp levels instead of smooth fade)
-    const rawDim = ramp(t, TIMELINE.DIM_START, TIMELINE.DIM_END);
-    const dimStep = Math.floor(rawDim * 4) / 4; // 0, 0.25, 0.5, 0.75, 1.0
-    const sceneDim = 1 - dimStep * 0.50; // 1.0 -> 0.875 -> 0.75 -> 0.625 -> 0.50
-    const greetingDim = 1 - dimStep * 0.16; // 1.0 -> 0.84
-
     const rot = t * ROT_SPEED;
 
-    // --- 1. Populate Unified Z-Buffered ASCII Grid ---
+    // --- 1. Populate Single Unified Z-Buffered Terminal Grid ---
     clearGrid();
 
-    // 1A. Subtle background stars (z = -100)
+    // 1A. Subtle background stars
     for (let i = 0; i < bgStars.length; i++) {
       const st = bgStars[i];
       const tw = 0.65 + 0.35 * Math.sin(t * st.speed + st.phase);
-      const a = st.baseAlpha * tw * sceneDim;
-      plotCell(st.col, st.row, st.ch, 155, 182, 222, a, -100);
+      plotCell(st.col, st.row, st.ch, 155, 182, 222, st.baseAlpha * tw, -100);
     }
 
-    // 1B. Dense, Slow Falling Snowflakes inside the SAME ASCII grid
+    // 1B. Dense, Slow Falling Snowflakes inside the SAME terminal grid
     // Foreground snow (z = +25) replaces tree glyphs cleanly cell-for-cell!
-    const snowCycleRows = ROWS + 8;
+    const snowCycleRows = ROWS + 10;
     for (let i = 0; i < snowflakes.length; i++) {
       const s = snowflakes[i];
       const age = t - s.bornAt;
@@ -1009,7 +1027,7 @@
       const row = Math.round(wrappedRow);
       if (row < 0 || row >= ROWS) continue;
 
-      const bottomFade = row > 106 ? clamp(1 - (row - 106) / 16, 0, 1) : 1;
+      const bottomFade = row > 144 ? clamp(1 - (row - 144) / 22, 0, 1) : 1;
       if (bottomFade <= 0.02) continue;
 
       const swayCol = s.col0 + Math.sin(age * s.swayFreq + s.phase) * s.swayCols;
@@ -1017,7 +1035,7 @@
 
       const twinkle = 0.80 + 0.20 * Math.sin(t * 2.5 + s.twinklePhase);
       const rgb = whiteToColor(s.targetColor, age, 0.9);
-      const alpha = s.baseAlpha * twinkle * bottomFade * sceneDim;
+      const alpha = s.baseAlpha * twinkle * bottomFade;
       const z = s.isForeground ? 25.0 : -50.0;
 
       plotCell(col, row, s.ch, rgb[0], rgb[1], rgb[2], alpha, z);
@@ -1044,7 +1062,7 @@
       }
 
       const z = gp.ny * 0.35 - 0.12;
-      plotCell(gp.col, gp.row, gp.ch, r, g, b, gp.baseAlpha * fade * shimmer * sceneDim, z);
+      plotCell(gp.col, gp.row, gp.ch, r, g, b, gp.baseAlpha * fade * shimmer, z);
     }
 
     // 1D. Rotating Tree Trunk (밑둥)
@@ -1074,7 +1092,7 @@
 
         const rgb = whiteToColor(targetRgb, age, 0.78);
         const fade = easeOutCubic(clamp(age / 0.22, 0, 1));
-        plotCell(col, row, tp.ch, rgb[0], rgb[1], rgb[2], fade * sceneDim, z);
+        plotCell(col, row, tp.ch, rgb[0], rgb[1], rgb[2], fade, z);
       }
     }
 
@@ -1094,7 +1112,7 @@
         const persp = 1 + z * 0.14;
 
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(pt.rowY + z * 1.55);
+        const row = Math.round(pt.rowY + z * 2.1);
 
         const diffuse = clamp(sinT * -0.42 + cosT * 0.86 + 0.14, 0, 1);
         const rim = Math.pow(1 - Math.abs(cosT), 2.2) * (cosT > -0.25 ? 0.26 : 0.06);
@@ -1109,7 +1127,7 @@
 
         const rgb = whiteToColor(targetRgb, age, 0.88);
         const fade = easeOutCubic(clamp(age / 0.22, 0, 1));
-        const alpha = (z >= -0.05 ? 0.96 : 0.42) * fade * sceneDim;
+        const alpha = (z >= -0.05 ? 0.96 : 0.42) * fade;
 
         plotCell(col, row, pt.ch, rgb[0], rgb[1], rgb[2], alpha, z);
       }
@@ -1132,7 +1150,7 @@
 
         const persp = 1 + z * 0.14;
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(gp.rowY + z * 1.55);
+        const row = Math.round(gp.rowY + z * 2.1);
 
         const edgeSoft = clamp((cosT + 0.14) / 0.26, 0, 1);
         const twinkle = gp.isBulb
@@ -1141,7 +1159,7 @@
 
         const rgb = whiteToColor(gp.targetColor, age, 0.75);
         const fade = easeOutCubic(clamp(age / 0.18, 0, 1));
-        const alpha = fade * edgeSoft * twinkle * sceneDim;
+        const alpha = fade * edgeSoft * twinkle;
 
         plotCell(col, row, gp.ch, rgb[0], rgb[1], rgb[2], alpha, z + 0.08);
       }
@@ -1165,12 +1183,12 @@
         const persp = 1 + z * 0.14;
 
         const centerCol = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const centerRow = Math.round(orn.rowY + z * 1.55);
+        const centerRow = Math.round(orn.rowY + z * 2.1);
 
         const edgeFade = clamp((cosT + 0.05) / 0.25, 0, 1);
         const popFade = easeOutCubic(clamp(age / 0.24, 0, 1));
         const twinkle = 0.88 + 0.12 * Math.sin(t * 3.4 + orn.twinklePhase);
-        const alpha = edgeFade * popFade * twinkle * sceneDim;
+        const alpha = edgeFade * popFade * twinkle;
 
         const sprite = ORNAMENT_SPRITES[orn.type];
         for (let s = 0; s < sprite.length; s++) {
@@ -1223,27 +1241,25 @@
           rgb[0],
           rgb[1],
           rgb[2],
-          fade * rayPulse * sceneDim,
+          fade * rayPulse,
           28.0
         );
       }
     }
 
-    // 1I. Clear snow cells beneath thick cursive ASCII 'Merry' & 'christmas'
-    maskCursiveUnderlay(merryAsciiCells, TIMELINE.MERRY_START, TIMELINE.MERRY_END, t);
-    maskCursiveUnderlay(christmasAsciiCells, TIMELINE.CHRISTMAS_START, TIMELINE.CHRISTMAS_END, t);
+    // 1I. Bold Cursive ASCII 'Merry' (left) & 'christmas' (right) on SAME 1x grid!
+    plotCursiveGreeting(merryAsciiCells, TIMELINE.MERRY_START, TIMELINE.MERRY_END, t);
+    plotCursiveGreeting(christmasAsciiCells, TIMELINE.CHRISTMAS_START, TIMELINE.CHRISTMAS_END, t);
 
-    // 1J. Terminal Insert/Overwrite Mode KST Countdown (clears & overwrites cells beneath!)
+    // 1J. Integrated Terminal Insert/Overwrite KST Countdown BELOW snow mound!
     plotTerminalInsertCountdown(t);
 
-    // --- 2. Render Single Unified ASCII Grid onto High-Res Offscreen Canvas ---
+    // --- 2. Render ONE Single Uniform Terminal Grid (ONE Font Size Everywhere!) ---
     sharpCtx.clearRect(0, 0, renderW, renderH);
     sharpCtx.textAlign = 'center';
     sharpCtx.textBaseline = 'middle';
 
     const mainFont = `700 ${gridFontPx.toFixed(1)}px ${FONT_FAMILY}`;
-    const cjkDotFont = `700 ${(gridFontPx * 0.86).toFixed(1)}px ${FONT_FAMILY}`;
-    let lastWasDot = false;
     sharpCtx.font = mainFont;
 
     for (let row = 0; row < ROWS; row++) {
@@ -1256,54 +1272,28 @@
         const a = gridA[idx];
         if (a <= 0.01) continue;
 
-        const isDot = ch === '。';
-        if (isDot !== lastWasDot) {
-          sharpCtx.font = isDot ? cjkDotFont : mainFont;
-          lastWasDot = isDot;
-        }
-
         const px = (col + 0.5) * cellW;
         sharpCtx.fillStyle = `rgba(${gridR[idx] | 0}, ${gridG[idx] | 0}, ${gridB[idx] | 0}, ${a.toFixed(3)})`;
         sharpCtx.fillText(ch, px, py);
       }
     }
 
-    // 2B. Draw 2x sub-grid thick cursive ASCII 'Merry' & 'christmas' on same sharpCanvas
-    drawCursiveGreetingSubgrid(
-      sharpCtx,
-      merryAsciiCells,
-      TIMELINE.MERRY_START,
-      TIMELINE.MERRY_END,
-      t,
-      greetingDim
-    );
-    drawCursiveGreetingSubgrid(
-      sharpCtx,
-      christmasAsciiCells,
-      TIMELINE.CHRISTMAS_START,
-      TIMELINE.CHRISTMAS_END,
-      t,
-      greetingDim
-    );
-
     // --- 3. Composite Final Frame + Phosphor Bloom ---
     const bgGrad = stageCtx.createRadialGradient(
       renderW * 0.5,
-      renderH * 0.52,
+      renderH * 0.5,
       renderW * 0.05,
       renderW * 0.5,
-      renderH * 0.52,
+      renderH * 0.5,
       renderH * 0.72
     );
-    const bgBoost = 1 - dimStep * 0.55;
-    bgGrad.addColorStop(0, `rgb(${(7 * bgBoost) | 0}, ${(13 * bgBoost) | 0}, ${(24 * bgBoost) | 0})`);
+    bgGrad.addColorStop(0, '#070d18');
     bgGrad.addColorStop(1, '#020308');
     stageCtx.fillStyle = bgGrad;
     stageCtx.fillRect(0, 0, renderW, renderH);
 
     stageCtx.drawImage(sharpCanvas, 0, 0, renderW, renderH);
 
-    // Multi-pass downscaled bilinear bloom
     bloomCtxA.clearRect(0, 0, bloomCanvasA.width, bloomCanvasA.height);
     bloomCtxA.drawImage(sharpCanvas, 0, 0, bloomCanvasA.width, bloomCanvasA.height);
 
@@ -1312,9 +1302,9 @@
 
     stageCtx.save();
     stageCtx.globalCompositeOperation = 'lighter';
-    stageCtx.globalAlpha = 0.42 * (1 - dimStep * 0.20);
+    stageCtx.globalAlpha = 0.42;
     stageCtx.drawImage(bloomCanvasA, 0, 0, renderW, renderH);
-    stageCtx.globalAlpha = 0.32 * (1 - dimStep * 0.20);
+    stageCtx.globalAlpha = 0.30;
     stageCtx.drawImage(bloomCanvasB, 0, 0, renderW, renderH);
     stageCtx.restore();
 
