@@ -3,12 +3,12 @@
 
   // =========================================================================
   // Configuration & Timeline (1080x2316 Single Unified Terminal Grid)
-  // Every single element uses the EXACT same grid (132x176) and font size!
+  // Balanced 106x142 grid so individual ASCII glyphs read clearly on mobile!
   // =========================================================================
   const BASE_WIDTH = 1080;
   const BASE_HEIGHT = 2316;
-  const COLS = 132;
-  const ROWS = 176;
+  const COLS = 106;
+  const ROWS = 142;
 
   const TIMELINE = {
     SNOW_GROUND_START: 0.15,
@@ -32,7 +32,7 @@
     MERRY_END: 16.65,
     CHRISTMAS_START: 16.55,
     CHRISTMAS_END: 17.75,
-    // No global dimming — countdown outputs directly in the integrated terminal below snow
+    // Integrated terminal countdown below accumulated snow (no global dimming)
     COUNTDOWN_CAPTION_START: 18.0,
     COUNTDOWN_CAPTION_END: 18.8,
     COUNTDOWN_DIGITS_START: 18.9,
@@ -47,23 +47,23 @@
     { top: 0.66, bot: 1.00, r0: 0.36, rmax: 0.68 },
   ];
 
-  // Vertical layout in unified 132x176 single-font terminal grid
+  // Vertical layout in unified 106x142 single-font terminal grid
   const LAYOUT = {
-    CENTER_COL: (COLS - 1) / 2, // 65.5
-    STAR_ROW: 16.5,
-    TREE_TOP_ROW: 23.0,
-    TREE_BOT_ROW: 113.0, // 90 rows tall
-    TRUNK_TOP_ROW: 112.0,
-    TRUNK_BOT_ROW: 123.0,
-    GROUND_CENTER_ROW: 131.0,
-    GROUND_RX: 58.0, // wide, dense circular snow mound
-    GROUND_RY: 13.5, // spans rows 117..145
-    TREE_SCALE_X: 76.0, // maps normalized radius 0.68 -> ~51.7 cols
+    CENTER_COL: (COLS - 1) / 2, // 52.5
+    STAR_ROW: 13.5,
+    TREE_TOP_ROW: 19.0,
+    TREE_BOT_ROW: 92.0, // 73 rows tall
+    TRUNK_TOP_ROW: 91.0,
+    TRUNK_BOT_ROW: 100.0,
+    GROUND_CENTER_ROW: 106.5,
+    GROUND_RX: 47.0, // wide, dense circular snow mound
+    GROUND_RY: 10.5, // spans rows 96..117
+    TREE_SCALE_X: 60.5, // maps normalized radius 0.68 -> ~41.1 cols
     // Integrated terminal countdown positioned cleanly BELOW accumulated snow
-    BOX_LEFT_COL: 24,
-    BOX_RIGHT_COL: 107,
-    CAPTION_TOP_ROW: 150, // 2-row ASCII header: rows 150..151
-    COUNTDOWN_TOP_ROW: 154, // 7-row ASCII digits: rows 154..160
+    BOX_LEFT_COL: 14,
+    BOX_RIGHT_COL: 91,
+    CAPTION_TOP_ROW: 121, // 2-row ASCII header: rows 121..122
+    COUNTDOWN_TOP_ROW: 125, // 7-row ASCII digits: rows 125..131
   };
 
   const ROT_SPEED = 0.35;
@@ -82,7 +82,7 @@
     N: ['|\\ |', '| \\|'],
     I: ['|', '|'],
     L: ['|  ', '|__'],
-    C: [",-'", '`-.' ],
+    C: [",-'", '`-.'],
     H: ['|_|', '| |'],
     R: ['|-.', '| \\'],
     M: ['|\\ /|', '| V |'],
@@ -179,12 +179,12 @@
 
   // =========================================================================
   // Thick Cursive Brush-Script -> 1x UNIFORM Terminal Grid Rasterizer
-  // Uses the EXACT same single grid & font size as the tree, snow & timer!
+  // Uses the EXACT same single 106x142 grid & font size as everything else!
   // =========================================================================
   function rasterizeCursiveToUniformGrid(text, targetCol, targetRow, boxCols, boxRows, tiltDeg, threshold) {
-    // Match 1080x2316 / (132x176) cell aspect ratio (8.18 / 13.16 ≈ 0.622)
-    const sampleCellW = 8;
-    const sampleCellH = 13;
+    // Match 1080x2316 / (106x142) cell aspect ratio (10.19 / 16.31 ≈ 0.625)
+    const sampleCellW = 10;
+    const sampleCellH = 16;
     const cw = boxCols * sampleCellW;
     const ch = boxRows * sampleCellH;
 
@@ -196,7 +196,7 @@
     let fontSize = Math.round(ch * 0.72);
     ctx.font = `400 ${fontSize}px ${CURSIVE_FONT}`;
     const measuredW = ctx.measureText(text).width;
-    const maxAllowedW = cw * 0.94;
+    const maxAllowedW = cw * 0.95;
     if (measuredW > maxAllowedW) {
       fontSize = Math.floor(fontSize * (maxAllowedW / measuredW));
     }
@@ -263,8 +263,9 @@
 
   function buildCursiveGreetings() {
     // 1x uniform terminal cells flanking upper-left & upper-right of the tree peak
-    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 3, 14, 55, 19, -6.0, 0.36);
-    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 70, 16, 60, 17, -5.0, 0.40);
+    // Crisp thresholds keep cursive loops & gaps completely legible at 106x142!
+    merryAsciiCells = rasterizeCursiveToUniformGrid('Merry', 2, 11, 45, 15, -6.0, 0.38);
+    christmasAsciiCells = rasterizeCursiveToUniformGrid('christmas', 54, 12, 51, 14, -5.0, 0.42);
   }
 
   // =========================================================================
@@ -274,7 +275,7 @@
 
   // 1. Background Ambient Stars
   const bgStars = [];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 100; i++) {
     bgStars.push({
       col: Math.floor(rng() * COLS),
       row: Math.floor(rng() * (ROWS * 0.82)),
@@ -286,13 +287,12 @@
   }
 
   // 2. Dense, Slow Grid-Integrated Snowflakes (+, *, 일본식 온점 '。', ., ·, ,)
-  // Foreground snow replaces tree characters cell-for-cell!
   const SNOW_GLYPHS_FAR = ['.', '·', ',', '.', '。'];
   const SNOW_GLYPHS_MID = ['+', '*', '。', '.', '+'];
   const SNOW_GLYPHS_NEAR = ['*', '+', '。', '.', '*'];
 
   const snowflakes = [];
-  const SNOW_COUNT = 420;
+  const SNOW_COUNT = 340;
   for (let i = 0; i < SNOW_COUNT; i++) {
     const depth = rng();
     const isForeground = depth > 0.54; // ~46% replace tree characters as they pass over
@@ -301,7 +301,7 @@
     else if (depth > 0.28) glyphPool = SNOW_GLYPHS_MID;
 
     const ch = glyphPool[Math.floor(rng() * glyphPool.length)];
-    const vyRows = 3.2 + depth * 5.8 + rng() * 1.4; // slow, serene snowfall
+    const vyRows = 2.6 + depth * 4.8 + rng() * 1.2; // slow, calm snowfall
     snowflakes.push({
       col0: rng() * COLS,
       row0: -rng() * (ROWS * 0.92),
@@ -309,7 +309,7 @@
       isForeground,
       ch,
       vyRows,
-      swayCols: 1.0 + rng() * 2.6,
+      swayCols: 0.8 + rng() * 2.1,
       swayFreq: 0.35 + rng() * 0.65,
       phase: rng() * Math.PI * 2,
       twinklePhase: rng() * Math.PI * 2,
@@ -382,11 +382,11 @@
   // 4. Tree Trunk (밑둥) — 3D rotating cylinder
   const trunkPoints = [];
   const TRUNK_GLYPHS = ['|', '#', 'H', 'I', 'M', ':'];
-  const TRUNK_ROWS = 24;
+  const TRUNK_ROWS = 20;
   for (let i = 0; i < TRUNK_ROWS; i++) {
     const v = i / (TRUNK_ROWS - 1);
     const rowY = LAYOUT.TRUNK_BOT_ROW - v * (LAYOUT.TRUNK_BOT_ROW - LAYOUT.TRUNK_TOP_ROW);
-    const numAround = 38;
+    const numAround = 32;
     for (let j = 0; j < numAround; j++) {
       const theta = (j / numAround) * Math.PI * 2 + rng() * 0.14;
       const r = 0.092 + (1 - v) * 0.024 + (rng() - 0.5) * 0.008;
@@ -406,7 +406,7 @@
     }
   }
 
-  // 5. Tree Foliage Points (4 overlapping 3D tiers, ultra-dense)
+  // 5. Tree Foliage Points (4 overlapping 3D tiers)
   const treePoints = [];
   const treeHeightRows = LAYOUT.TREE_BOT_ROW - LAYOUT.TREE_TOP_ROW;
 
@@ -414,13 +414,13 @@
     const tier = TIERS[k];
     const [tStart, tEnd] = TIMELINE.TIER_WINDOWS[k];
     const spanH = tier.bot - tier.top;
-    const rings = Math.round(spanH * treeHeightRows * 1.85);
+    const rings = Math.round(spanH * treeHeightRows * 1.9);
 
     for (let ri = 0; ri <= rings; ri++) {
       const u = ri / rings;
       const h = tier.top + u * spanH;
       const baseR = tierRadius(k, u);
-      const countAround = Math.max(12, Math.round(baseR * 260));
+      const countAround = Math.max(10, Math.round(baseR * 215));
 
       for (let j = 0; j < countAround; j++) {
         const theta =
@@ -475,7 +475,7 @@
 
   // 6. Spiral Garland / String Ornament (줄 형태 오너먼트)
   const garlandPoints = [];
-  const GARLAND_SAMPLES = 520;
+  const GARLAND_SAMPLES = 420;
   const GARLAND_TURNS = 4.6;
   const GARLAND_GLYPHS = ['o', '*', '~', '°', 'o', '·'];
 
@@ -505,73 +505,46 @@
     });
   }
 
-  // 7. 3D Ornaments: Sphere (구), Star (별), Stocking (양말) — scaled for 132x176 uniform grid
+  // 7. 3D Ornaments: Sphere (구), Star (별), Stocking (양말) — scaled for 106x142
   const ORNAMENT_SPRITES = {
     sphere: [
-      { dx: -1, dy: -2, ch: ',', role: 'body' },
-      { dx: 0, dy: -2, ch: '-', role: 'body' },
-      { dx: 1, dy: -2, ch: '-', role: 'body' },
-      { dx: 2, dy: -2, ch: ',', role: 'body' },
-      { dx: -2, dy: -1, ch: '(', role: 'body' },
-      { dx: -1, dy: -1, ch: '*', role: 'shine' },
-      { dx: 0, dy: -1, ch: '@', role: 'body' },
-      { dx: 1, dy: -1, ch: '@', role: 'body' },
-      { dx: 2, dy: -1, ch: '@', role: 'body' },
-      { dx: 3, dy: -1, ch: ')', role: 'body' },
+      { dx: -1, dy: -1, ch: ',', role: 'body' },
+      { dx: 0, dy: -1, ch: '-', role: 'body' },
+      { dx: 1, dy: -1, ch: ',', role: 'body' },
       { dx: -2, dy: 0, ch: '(', role: 'body' },
-      { dx: -1, dy: 0, ch: '@', role: 'body' },
+      { dx: -1, dy: 0, ch: '*', role: 'shine' },
       { dx: 0, dy: 0, ch: '@', role: 'body' },
       { dx: 1, dy: 0, ch: '@', role: 'body' },
-      { dx: 2, dy: 0, ch: '@', role: 'body' },
-      { dx: 3, dy: 0, ch: ')', role: 'body' },
+      { dx: 2, dy: 0, ch: ')', role: 'body' },
       { dx: -1, dy: 1, ch: '`', role: 'body' },
       { dx: 0, dy: 1, ch: '-', role: 'body' },
-      { dx: 1, dy: 1, ch: '-', role: 'body' },
-      { dx: 2, dy: 1, ch: "'", role: 'body' },
+      { dx: 1, dy: 1, ch: "'", role: 'body' },
     ],
     star: [
-      { dx: 0, dy: -2, ch: '*', role: 'body' },
-      { dx: -1, dy: -1, ch: '/', role: 'body' },
-      { dx: 0, dy: -1, ch: '*', role: 'shine' },
-      { dx: 1, dy: -1, ch: '\\', role: 'body' },
-      { dx: -3, dy: 0, ch: '-', role: 'body' },
-      { dx: -2, dy: 0, ch: '*', role: 'body' },
+      { dx: 0, dy: -1, ch: '*', role: 'body' },
+      { dx: -2, dy: 0, ch: '-', role: 'body' },
       { dx: -1, dy: 0, ch: '*', role: 'body' },
       { dx: 0, dy: 0, ch: '+', role: 'shine' },
       { dx: 1, dy: 0, ch: '*', role: 'body' },
-      { dx: 2, dy: 0, ch: '*', role: 'body' },
-      { dx: 3, dy: 0, ch: '-', role: 'body' },
+      { dx: 2, dy: 0, ch: '-', role: 'body' },
       { dx: -1, dy: 1, ch: '/', role: 'body' },
-      { dx: 0, dy: 1, ch: '*', role: 'body' },
       { dx: 1, dy: 1, ch: '\\', role: 'body' },
-      { dx: -2, dy: 2, ch: '/', role: 'body' },
-      { dx: 2, dy: 2, ch: '\\', role: 'body' },
     ],
     stocking: [
       { dx: 0, dy: -2, ch: '=', role: 'cuff' },
       { dx: 1, dy: -2, ch: '=', role: 'cuff' },
       { dx: 2, dy: -2, ch: '=', role: 'cuff' },
-      { dx: 3, dy: -2, ch: '=', role: 'cuff' },
       { dx: 0, dy: -1, ch: '|', role: 'body' },
       { dx: 1, dy: -1, ch: '#', role: 'body' },
-      { dx: 2, dy: -1, ch: '#', role: 'body' },
-      { dx: 3, dy: -1, ch: '|', role: 'body' },
+      { dx: 2, dy: -1, ch: '|', role: 'body' },
       { dx: 0, dy: 0, ch: '|', role: 'body' },
       { dx: 1, dy: 0, ch: '#', role: 'body' },
-      { dx: 2, dy: 0, ch: '#', role: 'body' },
-      { dx: 3, dy: 0, ch: '|', role: 'body' },
+      { dx: 2, dy: 0, ch: '|', role: 'body' },
       { dx: -2, dy: 1, ch: '(', role: 'cuff' },
       { dx: -1, dy: 1, ch: '#', role: 'body' },
       { dx: 0, dy: 1, ch: '#', role: 'body' },
       { dx: 1, dy: 1, ch: '#', role: 'body' },
       { dx: 2, dy: 1, ch: '#', role: 'body' },
-      { dx: 3, dy: 1, ch: '#', role: 'body' },
-      { dx: -2, dy: 2, ch: '(', role: 'cuff' },
-      { dx: -1, dy: 2, ch: '#', role: 'body' },
-      { dx: 0, dy: 2, ch: '#', role: 'body' },
-      { dx: 1, dy: 2, ch: '#', role: 'body' },
-      { dx: 2, dy: 2, ch: '#', role: 'body' },
-      { dx: 3, dy: 2, ch: ')', role: 'body' },
     ],
   };
 
@@ -590,7 +563,7 @@
     const frac = i / (ORN_COUNT - 1);
     const h = 0.91 - frac * 0.70;
     const theta = i * GOLDEN_ANGLE + 0.55;
-    const r = maxTreeRadiusAtH(h) + 0.048;
+    const r = maxTreeRadiusAtH(h) + 0.05;
     const type = ORN_TYPES[i % ORN_TYPES.length];
 
     let bodyColor;
@@ -619,41 +592,33 @@
     });
   }
 
-  // 8. Top Star (맨 위 별 + 빛줄기 — scaled cleanly for 132x176)
+  // 8. Top Star (맨 위 별 + 빛줄기 — scaled cleanly for 106x142)
   const topStarCells = [
     { dx: 0, dy: 0, ch: '@', ring: 0, color: [255, 246, 182] },
     { dx: -1, dy: 0, ch: '*', ring: 1, color: [255, 228, 118] },
     { dx: 1, dy: 0, ch: '*', ring: 1, color: [255, 228, 118] },
     { dx: 0, dy: -1, ch: '*', ring: 1, color: [255, 228, 118] },
     { dx: 0, dy: 1, ch: '*', ring: 1, color: [255, 228, 118] },
-    { dx: -2, dy: 0, ch: '*', ring: 2, color: [255, 212, 82] },
-    { dx: 2, dy: 0, ch: '*', ring: 2, color: [255, 212, 82] },
-    { dx: -3, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
-    { dx: 3, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
-    { dx: 0, dy: -2, ch: '|', ring: 2, color: [255, 212, 82] },
-    { dx: 0, dy: 2, ch: '|', ring: 2, color: [255, 212, 82] },
-    { dx: 0, dy: -3, ch: '|', ring: 2, color: [255, 204, 72] },
-    { dx: 0, dy: 3, ch: '|', ring: 2, color: [255, 204, 72] },
+    { dx: -2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
+    { dx: 2, dy: 0, ch: '+', ring: 2, color: [255, 206, 74] },
+    { dx: 0, dy: -2, ch: '|', ring: 2, color: [255, 206, 74] },
+    { dx: 0, dy: 2, ch: '|', ring: 2, color: [255, 206, 74] },
     { dx: -1, dy: -1, ch: '\\', ring: 2, color: [255, 214, 88] },
     { dx: 1, dy: -1, ch: '/', ring: 2, color: [255, 214, 88] },
     { dx: -1, dy: 1, ch: '/', ring: 2, color: [255, 214, 88] },
     { dx: 1, dy: 1, ch: '\\', ring: 2, color: [255, 214, 88] },
-    { dx: -2, dy: -2, ch: '\\', ring: 3, color: [255, 188, 62] },
-    { dx: 2, dy: -2, ch: '/', ring: 3, color: [255, 188, 62] },
-    { dx: -2, dy: 2, ch: '/', ring: 3, color: [255, 188, 62] },
-    { dx: 2, dy: 2, ch: '\\', ring: 3, color: [255, 188, 62] },
-    { dx: -4, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
-    { dx: 4, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
-    { dx: -5, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
-    { dx: 5, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
-    { dx: -6, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 6, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 0, dy: -4, ch: '|', ring: 3, color: [255, 184, 58] },
-    { dx: 0, dy: -5, ch: '.', ring: 3, color: [242, 168, 54] },
-    { dx: -3, dy: -3, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 3, dy: -3, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: -3, dy: 3, ch: '·', ring: 3, color: [242, 168, 54] },
-    { dx: 3, dy: 3, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: -3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
+    { dx: 3, dy: 0, ch: '-', ring: 3, color: [255, 184, 58] },
+    { dx: -4, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
+    { dx: 4, dy: 0, ch: '-', ring: 3, color: [248, 174, 56] },
+    { dx: -5, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 5, dy: 0, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 0, dy: -3, ch: '|', ring: 3, color: [255, 184, 58] },
+    { dx: 0, dy: -4, ch: '.', ring: 3, color: [242, 168, 54] },
+    { dx: -2, dy: -2, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 2, dy: -2, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: -2, dy: 2, ch: '·', ring: 3, color: [242, 168, 54] },
+    { dx: 2, dy: 2, ch: '·', ring: 3, color: [242, 168, 54] },
   ];
 
   // =========================================================================
@@ -688,7 +653,6 @@
     }
   }
 
-  // Terminal overwrite blank cell (clears any snow/stars behind typed regions)
   function overwriteBlankCell(col, row, z) {
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
     const idx = row * COLS + col;
@@ -699,11 +663,10 @@
     }
   }
 
-  // Plot 1x uniform-grid thick cursive greeting (same single font as entire terminal!)
-  function plotCursiveGreeting(cells, startTime, endTime, t) {
+  // Plot 1x uniform-grid thick cursive greeting (white -> targetRgb)
+  function plotCursiveGreeting(cells, startTime, endTime, t, targetRgb) {
     if (t < startTime || cells.length === 0) return;
     const span = Math.max(0.01, endTime - startTime);
-    const targetRed = [255, 38, 60];
 
     for (let i = 0; i < cells.length; i++) {
       const c = cells[i];
@@ -711,7 +674,7 @@
       const age = t - cellStart;
       if (age <= 0) continue;
 
-      const rgb = whiteToColorStepped(targetRed, age, 0.72, 5);
+      const rgb = whiteToColorStepped(targetRgb, age, 0.72, 5);
       const lum = 0.80 + 0.20 * c.cov;
       plotCell(c.col, c.row, c.ch, rgb[0], rgb[1], rgb[2], lum, 34.0);
     }
@@ -800,7 +763,6 @@
     const capSweepCols = Math.floor(capProg * capWidth);
     const capEndColLimit = capStartCol + capSweepCols;
 
-    // Overwrite underlying snow/sky cleanly across the 2-row header band
     const capClearEnd = Math.min(boxRight, boxLeft + Math.floor(capProg * (boxRight - boxLeft + 1)));
     for (let col = boxLeft; col <= capClearEnd; col++) {
       overwriteBlankCell(col, LAYOUT.CAPTION_TOP_ROW - 1, 45.0);
@@ -824,7 +786,6 @@
       }
     }
 
-    // Active 2-row terminal block cursor while typing the header
     if (capProg < 1.0) {
       plotCell(capEndColLimit, LAYOUT.CAPTION_TOP_ROW, '█', 255, 255, 255, 1.0, 48.0);
       plotCell(capEndColLimit, LAYOUT.CAPTION_TOP_ROW + 1, '█', 255, 255, 255, 1.0, 48.0);
@@ -911,7 +872,6 @@
       curCol += w + 2;
     }
 
-    // Active terminal insert-mode block cursor bar while typing
     if (digProg < 1.0) {
       const headCol = Math.min(boxRight, overwriteLimitCol + 1);
       for (let dy = 0; dy < 7; dy++) {
@@ -941,7 +901,7 @@
   let renderH = BASE_HEIGHT;
   let cellW = renderW / COLS;
   let cellH = renderH / ROWS;
-  let gridFontPx = Math.min(cellH * 1.02, cellW / 0.56);
+  let gridFontPx = Math.min(cellH * 1.08, cellW / 0.54);
 
   function resize() {
     const rect = stageFrame.getBoundingClientRect();
@@ -972,7 +932,7 @@
 
     cellW = renderW / COLS;
     cellH = renderH / ROWS;
-    gridFontPx = Math.min(cellH * 1.02, cellW / 0.56);
+    gridFontPx = Math.min(cellH * 1.08, cellW / 0.54);
   }
 
   window.addEventListener('resize', resize);
@@ -1014,7 +974,6 @@
     }
 
     // 1B. Dense, Slow Falling Snowflakes inside the SAME terminal grid
-    // Foreground snow (z = +25) replaces tree glyphs cleanly cell-for-cell!
     const snowCycleRows = ROWS + 10;
     for (let i = 0; i < snowflakes.length; i++) {
       const s = snowflakes[i];
@@ -1027,7 +986,7 @@
       const row = Math.round(wrappedRow);
       if (row < 0 || row >= ROWS) continue;
 
-      const bottomFade = row > 144 ? clamp(1 - (row - 144) / 22, 0, 1) : 1;
+      const bottomFade = row > 116 ? clamp(1 - (row - 116) / 18, 0, 1) : 1;
       if (bottomFade <= 0.02) continue;
 
       const swayCol = s.col0 + Math.sin(age * s.swayFreq + s.phase) * s.swayCols;
@@ -1112,7 +1071,7 @@
         const persp = 1 + z * 0.14;
 
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(pt.rowY + z * 2.1);
+        const row = Math.round(pt.rowY + z * 1.7);
 
         const diffuse = clamp(sinT * -0.42 + cosT * 0.86 + 0.14, 0, 1);
         const rim = Math.pow(1 - Math.abs(cosT), 2.2) * (cosT > -0.25 ? 0.26 : 0.06);
@@ -1150,7 +1109,7 @@
 
         const persp = 1 + z * 0.14;
         const col = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const row = Math.round(gp.rowY + z * 2.1);
+        const row = Math.round(gp.rowY + z * 1.7);
 
         const edgeSoft = clamp((cosT + 0.14) / 0.26, 0, 1);
         const twinkle = gp.isBulb
@@ -1183,7 +1142,7 @@
         const persp = 1 + z * 0.14;
 
         const centerCol = Math.round(LAYOUT.CENTER_COL + x * LAYOUT.TREE_SCALE_X * persp);
-        const centerRow = Math.round(orn.rowY + z * 2.1);
+        const centerRow = Math.round(orn.rowY + z * 1.7);
 
         const edgeFade = clamp((cosT + 0.05) / 0.25, 0, 1);
         const popFade = easeOutCubic(clamp(age / 0.24, 0, 1));
@@ -1247,9 +1206,9 @@
       }
     }
 
-    // 1I. Bold Cursive ASCII 'Merry' (left) & 'christmas' (right) on SAME 1x grid!
-    plotCursiveGreeting(merryAsciiCells, TIMELINE.MERRY_START, TIMELINE.MERRY_END, t);
-    plotCursiveGreeting(christmasAsciiCells, TIMELINE.CHRISTMAS_START, TIMELINE.CHRISTMAS_END, t);
+    // 1I. Bold Cursive ASCII 'Merry' (GREEN, left) & 'christmas' (RED, right) on SAME 1x grid!
+    plotCursiveGreeting(merryAsciiCells, TIMELINE.MERRY_START, TIMELINE.MERRY_END, t, [56, 226, 114]);
+    plotCursiveGreeting(christmasAsciiCells, TIMELINE.CHRISTMAS_START, TIMELINE.CHRISTMAS_END, t, [255, 42, 64]);
 
     // 1J. Integrated Terminal Insert/Overwrite KST Countdown BELOW snow mound!
     plotTerminalInsertCountdown(t);
