@@ -42,6 +42,38 @@
           </svg>
         </button>
       </div>
+
+      <!-- Secret Code Modal Overlay -->
+      <div id="codeOverlay" class="code-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+        <div id="codeModal" class="code-modal">
+          <button id="codeCloseBtn" class="code-close-btn" type="button" aria-label="닫기" title="닫기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <p id="codeTitle" class="code-title">Enter code</p>
+          <div id="codeSlotsWrap" class="code-slots-wrap">
+            <div class="code-slots" id="codeSlots" aria-hidden="true">
+              <span class="code-slot" data-index="0">_</span>
+              <span class="code-slot" data-index="1">_</span>
+              <span class="code-slot" data-index="2">_</span>
+              <span class="code-slot" data-index="3">_</span>
+            </div>
+            <input
+              id="codeInput"
+              class="code-hidden-input"
+              type="tel"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              autocomplete="one-time-code"
+              aria-label="4자리 숫자 코드 입력"
+            />
+          </div>
+          <p id="codeStatus" class="code-status" aria-live="polite"></p>
+        </div>
+      </div>
     </div>
   </main>
 

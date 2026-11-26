@@ -79,6 +79,8 @@
   // =========================================================================
   const BOOT_HOLD_END = 3.35;   // Boot log ends + brief hold on "Final decoding ... OK"
   const BOOT_CUT_END = 3.75;    // Hard cut pure black beat (no fade/transition)
+  const SECRET_CODE = '0522';
+  let secretState = 0;          // 0 = default (D-Day hidden), 1 = unlocked via code 0522
 
   function formatKstTimestamp(ms) {
     const kst = new Date(ms + 9 * 60 * 60 * 1000);
@@ -94,6 +96,11 @@
   function createBootLines(nowMs) {
     const dateStr = formatKstTimestamp(nowMs);
     const dDay = getKstAnniversaryDays();
+    const secretLine =
+      secretState === 1
+        ? { at: 1.78, text: `[ 0.940] Secret mode :: JINBIN (D+${dDay}) . OK`, tone: 'bright' }
+        : { at: 1.78, text: '[ 0.940] Verifying holiday archive ........ OK', tone: 'normal' };
+
     return [
       { at: 0.05, text: 'ASCII-CHRISTMAS TERMINAL BIOS v2.6.1225', tone: 'bright' },
       { at: 0.14, text: '================================================', tone: 'dim' },
@@ -109,7 +116,7 @@
       { at: 1.36, text: '[ 0.588] Linking dual-helix garland ....... OK', tone: 'normal' },
       { at: 1.50, text: '[ 0.702] Starting text renderer ........... OK', tone: 'normal' },
       { at: 1.64, text: '[ 0.819] Syncing KST countdown timer ...... OK', tone: 'normal' },
-      { at: 1.78, text: `[ 0.940] Checking D-Day (D+${dDay}) .......... OK`, tone: 'normal' },
+      secretLine,
       { at: 1.92, text: '[ 1.042] Starting WebAudio beep synth ..... OK', tone: 'normal' },
       { at: 2.04, text: '[ 1.150] Calibrating phosphor bloom ....... OK', tone: 'normal' },
       { at: 2.18, text: '...', tone: 'dim' },
@@ -1108,7 +1115,14 @@
       return;
     }
 
-    // --- Pass 3: 3-row ASCII 'JINBIN ♥ D+1257' typed below countdown ---
+    // --- Pass 3: 3-row ASCII 'JINBIN ♥ D+XXXX' (only shown when secretState === 1) ---
+    if (secretState !== 1) {
+      if (Math.floor(t * 2.2) % 2 === 0) {
+        plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 6, '█', 255, 232, 168, 0.9, 48.0);
+      }
+      return;
+    }
+
     if (t < TIMELINE.DDAY_START) {
       if (Math.floor(t * 6) % 2 === 0) {
         plotCell(digitEndCol + 2, LAYOUT.COUNTDOWN_TOP_ROW + 6, '█', 255, 232, 168, 0.9, 48.0);
@@ -1476,6 +1490,169 @@
     }
   });
 
+  // =========================================================================
+  // Secret Code Modal (Tree screen tap -> Enter 4-digit code '0522' -> Reboot)
+  // =========================================================================
+  const codeOverlay = document.getElementById('codeOverlay');
+  const codeModal = document.getElementById('codeModal');
+  const codeCloseBtn = document.getElementById('codeCloseBtn');
+  const codeSlotsWrap = document.getElementById('codeSlotsWrap');
+  const codeSlotsEl = document.getElementById('codeSlots');
+  const codeSlotNodes = Array.from(codeSlotsEl.querySelectorAll('.code-slot'));
+  const codeInput = document.getElementById('codeInput');
+  const codeStatus = document.getElementById('codeStatus');
+
+  let codeModalOpen = false;
+  let codeSubmitting = false;
+  let codeFeedbackTimer = null;
+  let prevCodeLen = 0;
+
+  function playSecretUnlockChime() {
+    if (!canPlaySound()) return;
+    const now = audioCtx.currentTime;
+    const freqs = [523.25, 659.25, 783.99, 1046.5];
+    for (let i = 0; i < freqs.length; i++) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'square';
+      const start = now + i * 0.065;
+      osc.frequency.setValueAtTime(freqs[i], start);
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.linearRampToValueAtTime(0.16, start + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 0.14);
+      osc.connect(g);
+      g.connect(leadFilter || masterGain);
+      osc.start(start);
+      osc.stop(start + 0.16);
+    }
+  }
+
+  function renderCodeSlots(value) {
+    for (let i = 0; i < 4; i++) {
+      const node = codeSlotNodes[i];
+      const digit = value[i];
+      node.textContent = digit !== undefined ? digit : '_';
+      node.classList.toggle('filled', digit !== undefined);
+      node.classList.toggle('active', !codeSubmitting && i === value.length);
+    }
+  }
+
+  function clearCodeVisualState() {
+    if (codeFeedbackTimer) {
+      clearTimeout(codeFeedbackTimer);
+      codeFeedbackTimer = null;
+    }
+    codeSubmitting = false;
+    codeSlotsEl.classList.remove('error', 'success', 'shake');
+    codeStatus.classList.remove('error', 'success');
+    codeStatus.textContent = '';
+  }
+
+  function openCodeModal() {
+    if (codeModalOpen) return;
+    codeModalOpen = true;
+    clearCodeVisualState();
+    codeInput.value = '';
+    prevCodeLen = 0;
+    renderCodeSlots('');
+    codeOverlay.classList.add('open');
+    codeOverlay.setAttribute('aria-hidden', 'false');
+    codeInput.focus();
+  }
+
+  function closeCodeModal() {
+    if (!codeModalOpen) return;
+    codeModalOpen = false;
+    clearCodeVisualState();
+    codeInput.value = '';
+    prevCodeLen = 0;
+    renderCodeSlots('');
+    codeInput.blur();
+    codeOverlay.classList.remove('open');
+    codeOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  // Open popup when tapping the tree screen (after boot screen finishes)
+  stageCanvas.addEventListener('click', () => {
+    if (secretState === 1 || codeModalOpen) return;
+    const elapsed = (performance.now() - startTimeMs) / 1000;
+    if (elapsed < BOOT_CUT_END) return;
+    openCodeModal();
+  });
+
+  codeCloseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeCodeModal();
+  });
+
+  codeOverlay.addEventListener('click', (e) => {
+    if (e.target === codeOverlay) {
+      closeCodeModal();
+    }
+  });
+
+  codeModal.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  codeSlotsWrap.addEventListener('click', () => {
+    if (!codeSubmitting) codeInput.focus();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (codeModalOpen && e.key === 'Escape') {
+      closeCodeModal();
+    }
+  });
+
+  codeInput.addEventListener('input', () => {
+    if (codeSubmitting) {
+      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 4);
+      return;
+    }
+    const digits = codeInput.value.replace(/\D/g, '').slice(0, 4);
+    if (codeInput.value !== digits) codeInput.value = digits;
+
+    if (digits.length > prevCodeLen) {
+      playBeep(1120, 0.018, 0.08, 'square', true);
+    }
+    prevCodeLen = digits.length;
+
+    codeSlotsEl.classList.remove('error', 'shake');
+    codeStatus.classList.remove('error');
+    codeStatus.textContent = '';
+    renderCodeSlots(digits);
+
+    if (digits.length === 4) {
+      codeSubmitting = true;
+      renderCodeSlots(digits);
+
+      if (digits === SECRET_CODE) {
+        codeSlotsEl.classList.add('success');
+        codeStatus.classList.add('success');
+        codeStatus.textContent = 'ACCESS GRANTED';
+        playSecretUnlockChime();
+        codeFeedbackTimer = setTimeout(() => {
+          secretState = 1;
+          closeCodeModal();
+          resetAnimation(false);
+        }, 380);
+      } else {
+        codeSlotsEl.classList.add('error', 'shake');
+        codeStatus.classList.add('error');
+        codeStatus.textContent = 'INVALID CODE';
+        playBeep(210, 0.12, 0.14, 'square', true);
+        codeFeedbackTimer = setTimeout(() => {
+          clearCodeVisualState();
+          codeInput.value = '';
+          prevCodeLen = 0;
+          renderCodeSlots('');
+          if (codeModalOpen) codeInput.focus();
+        }, 520);
+      }
+    }
+  });
+
   const sharpCanvas = document.createElement('canvas');
   const sharpCtx = sharpCanvas.getContext('2d');
   const bloomCanvasA = document.createElement('canvas');
@@ -1546,7 +1723,11 @@
     }
   }
 
-  replayBtn.addEventListener('click', () => resetAnimation(true));
+  replayBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeCodeModal();
+    resetAnimation(true);
+  });
 
   function render(nowMs) {
     const elapsed = (nowMs - startTimeMs) / 1000;
