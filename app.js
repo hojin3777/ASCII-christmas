@@ -1500,32 +1500,9 @@
   const codeSlotsEl = document.getElementById('codeSlots');
   const codeSlotNodes = Array.from(codeSlotsEl.querySelectorAll('.code-slot'));
   const codeInput = document.getElementById('codeInput');
-  const codeStatus = document.getElementById('codeStatus');
 
   let codeModalOpen = false;
-  let codeSubmitting = false;
-  let codeFeedbackTimer = null;
   let prevCodeLen = 0;
-
-  function playSecretUnlockChime() {
-    if (!canPlaySound()) return;
-    const now = audioCtx.currentTime;
-    const freqs = [523.25, 659.25, 783.99, 1046.5];
-    for (let i = 0; i < freqs.length; i++) {
-      const osc = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      osc.type = 'square';
-      const start = now + i * 0.065;
-      osc.frequency.setValueAtTime(freqs[i], start);
-      g.gain.setValueAtTime(0.0001, start);
-      g.gain.linearRampToValueAtTime(0.16, start + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, start + 0.14);
-      osc.connect(g);
-      g.connect(leadFilter || masterGain);
-      osc.start(start);
-      osc.stop(start + 0.16);
-    }
-  }
 
   function renderCodeSlots(value) {
     for (let i = 0; i < 4; i++) {
@@ -1533,25 +1510,13 @@
       const digit = value[i];
       node.textContent = digit !== undefined ? digit : '_';
       node.classList.toggle('filled', digit !== undefined);
-      node.classList.toggle('active', !codeSubmitting && i === value.length);
+      node.classList.toggle('active', i === value.length);
     }
-  }
-
-  function clearCodeVisualState() {
-    if (codeFeedbackTimer) {
-      clearTimeout(codeFeedbackTimer);
-      codeFeedbackTimer = null;
-    }
-    codeSubmitting = false;
-    codeSlotsEl.classList.remove('error', 'success', 'shake');
-    codeStatus.classList.remove('error', 'success');
-    codeStatus.textContent = '';
   }
 
   function openCodeModal() {
     if (codeModalOpen) return;
     codeModalOpen = true;
-    clearCodeVisualState();
     codeInput.value = '';
     prevCodeLen = 0;
     renderCodeSlots('');
@@ -1563,7 +1528,6 @@
   function closeCodeModal() {
     if (!codeModalOpen) return;
     codeModalOpen = false;
-    clearCodeVisualState();
     codeInput.value = '';
     prevCodeLen = 0;
     renderCodeSlots('');
@@ -1596,7 +1560,7 @@
   });
 
   codeSlotsWrap.addEventListener('click', () => {
-    if (!codeSubmitting) codeInput.focus();
+    codeInput.focus();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -1606,49 +1570,23 @@
   });
 
   codeInput.addEventListener('input', () => {
-    if (codeSubmitting) {
-      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 4);
-      return;
-    }
     const digits = codeInput.value.replace(/\D/g, '').slice(0, 4);
     if (codeInput.value !== digits) codeInput.value = digits;
 
-    if (digits.length > prevCodeLen) {
+    if (digits.length > prevCodeLen && digits.length < 4) {
       playBeep(1120, 0.018, 0.08, 'square', true);
     }
     prevCodeLen = digits.length;
-
-    codeSlotsEl.classList.remove('error', 'shake');
-    codeStatus.classList.remove('error');
-    codeStatus.textContent = '';
     renderCodeSlots(digits);
 
     if (digits.length === 4) {
-      codeSubmitting = true;
-      renderCodeSlots(digits);
-
       if (digits === SECRET_CODE) {
-        codeSlotsEl.classList.add('success');
-        codeStatus.classList.add('success');
-        codeStatus.textContent = 'ACCESS GRANTED';
-        playSecretUnlockChime();
-        codeFeedbackTimer = setTimeout(() => {
-          secretState = 1;
-          closeCodeModal();
-          resetAnimation(false);
-        }, 380);
+        secretState = 1;
+        closeCodeModal();
+        resetAnimation(false);
       } else {
-        codeSlotsEl.classList.add('error', 'shake');
-        codeStatus.classList.add('error');
-        codeStatus.textContent = 'INVALID CODE';
-        playBeep(210, 0.12, 0.14, 'square', true);
-        codeFeedbackTimer = setTimeout(() => {
-          clearCodeVisualState();
-          codeInput.value = '';
-          prevCodeLen = 0;
-          renderCodeSlots('');
-          if (codeModalOpen) codeInput.focus();
-        }, 520);
+        // Wrong code: silently close popup with no error shake, text, or beep
+        closeCodeModal();
       }
     }
   });
